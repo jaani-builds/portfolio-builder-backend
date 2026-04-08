@@ -1,0 +1,39 @@
+# Production Terraform variables for portfolio-builder backend
+# Copy this file to terraform.tfvars.production and replace all placeholders.
+
+aws_region   = "us-east-1"
+project_name = "portfolio-builder"
+environment  = "prod"
+
+# Cloudflare Pages URL for your deployed frontend (no trailing slash)
+frontend_url = "https://your-project.pages.dev"
+
+# GitHub OAuth app credentials (create new credentials for production)
+github_client_id     = "replace-with-prod-client-id"
+github_client_secret = "replace-with-prod-client-secret"
+
+# Use a long random secret (32+ chars)
+jwt_secret = "replace-with-long-random-secret-32-plus-chars"
+
+# Email destination for CloudWatch/SNS alerts
+alert_email = "you@example.com"
+
+# Optional tuning
+lambda_memory_size = 512
+lambda_timeout     = 30
+
+# Cost guardrails
+monthly_budget_limit_usd      = 20
+budget_alert_threshold_percent = 80
+create_billing_alarm           = true
+
+# Optional object URL base (CloudFront/custom domain)
+aws_public_base_url = ""
+
+# Optional API custom domain setup
+# api_custom_domain       = "api.yourdomain.com"
+# api_acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Keep false for real AWS production
+use_localstack      = false
+localstack_endpoint = "http://localhost:4566"
