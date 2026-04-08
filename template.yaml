@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Portfolio Builder backend on AWS Lambda + API Gateway
+
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: python3.12
+    MemorySize: 512
+
+Parameters:
+  JwtSecret:
+    Type: String
+    NoEcho: true
+  GithubClientId:
+    Type: String
+  GithubClientSecret:
+    Type: String
+    NoEcho: true
+  AppBaseUrl:
+    Type: String
+  FrontendUrl:
+    Type: String
+
+Resources:
+  PortfolioBucket:
+    Type: AWS::S3::Bucket
+
+  PortfolioTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda_handler.handler
+      CodeUri: .
+      Environment:
+        Variables:
+          JWT_SECRET: !Ref JwtSecret
+          GITHUB_CLIENT_ID: !Ref GithubClientId
+          GITHUB_CLIENT_SECRET: !Ref GithubClientSecret
+          APP_BASE_URL: !Ref AppBaseUrl
+          FRONTEND_URL: !Ref FrontendUrl
+          AWS_REGION: !Ref AWS::Region
+          AWS_S3_BUCKET: !Ref PortfolioBucket
+          AWS_DDB_TABLE: !Ref PortfolioTable
+          AWS_S3_PREFIX: portfolio-builder
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref PortfolioBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PortfolioTable
+      Events:
+        ProxyApi:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+        RootApi:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: ANY
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com
+  BucketName:
+    Value: !Ref PortfolioBucket
+  TableName:
+    Value: !Ref PortfolioTable

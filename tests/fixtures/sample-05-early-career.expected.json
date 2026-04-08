@@ -1,0 +1,14 @@
+{
+  "basics": {
+    "name": "Ethan Lee",
+    "role": "Junior Software Engineer",
+    "email": "ethan.lee@example.com",
+    "phone": "+1 206 555 0172"
+  },
+  "counts": {
+    "experience": 2,
+    "education": 1,
+    "certifications": 1
+  },
+  "min_skill_groups": 3
+}

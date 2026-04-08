@@ -1,0 +1,14 @@
+{
+  "basics": {
+    "name": "Daniel Kim",
+    "role": "Machine Learning Engineer",
+    "email": "daniel.kim@example.com",
+    "phone": "+44 7700 900123"
+  },
+  "counts": {
+    "experience": 2,
+    "education": 2,
+    "certifications": 1
+  },
+  "min_skill_groups": 3
+}

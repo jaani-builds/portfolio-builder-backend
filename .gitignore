@@ -1,0 +1,11 @@
+# Local secrets
+.env
+.env.local
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local runtime artifacts
+data/
+.pytest_cache/

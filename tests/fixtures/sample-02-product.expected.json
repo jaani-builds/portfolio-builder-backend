@@ -1,0 +1,14 @@
+{
+  "basics": {
+    "name": "Priya Nair",
+    "role": "Technical Product Manager",
+    "email": "priya.nair@example.com",
+    "phone": "+65 8123 4567"
+  },
+  "counts": {
+    "experience": 2,
+    "education": 2,
+    "certifications": 1
+  },
+  "min_skill_groups": 3
+}

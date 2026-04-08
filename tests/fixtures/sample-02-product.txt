@@ -1,0 +1,33 @@
+Priya Nair
+Technical Product Manager
+priya.nair@example.com | +65 8123 4567 | Singapore
+https://linkedin.com/in/priyanairpm
+https://github.com/priya-builds
+
+PROFESSIONAL SUMMARY
+Product manager with engineering background, focused on platform strategy, delivery excellence, and stakeholder alignment in aviation and e-commerce.
+
+WORK EXPERIENCE
+Technical Product Manager | AeroConnect | Jul 2023 - Present
+Singapore | Full-time
+- Own platform roadmap for internal developer tooling and cloud foundations
+- Run quarterly planning with engineering and security teams
+- Drove adoption of golden path templates across 8 squads
+
+Product Owner | ShopSphere | Jan 2020 - Jun 2023
+Singapore | Full-time
+- Defined backlog priorities for checkout and payments modernization
+- Improved release predictability with data-backed sprint planning
+- Partnered with analytics to reduce checkout failure rates
+
+EDUCATION
+MBA (Technology Management) | NUS Business School | 2018 - 2020
+BEng Information Technology | Anna University | 2011 - 2015
+
+SKILLS
+Product: Roadmapping, Prioritization, Stakeholder Management, Agile Delivery
+Technical: API Design, Cloud Migration, Platform Engineering
+Tools: Jira, Confluence, Miro, SQL
+
+CERTIFICATIONS
+Professional Scrum Product Owner (PSPO I)

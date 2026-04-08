@@ -1,0 +1,30 @@
+Ethan Lee
+Junior Software Engineer
+ethan.lee@example.com | +1 206 555 0172 | Seattle, USA
+linkedin.com/in/ethanlee-dev
+
+SUMMARY
+Early-career engineer with internship and freelance experience building web apps and automation scripts.
+
+EXPERIENCE
+Junior Software Engineer | Northlake Apps | Jun 2024 - Present
+Seattle, USA | Full-time
+- Implemented REST API endpoints in Django
+- Added unit tests for billing and user modules
+- Fixed production bugs and improved logging
+
+Software Engineering Intern | SwiftCloud | Jun 2023 - Aug 2023
+Seattle, USA | Internship
+- Developed internal tools for deployment checks
+- Wrote scripts for release-note generation
+
+EDUCATION
+BS Computer Engineering | University of Washington | 2020 - 2024
+
+SKILLS
+Programming: Python, JavaScript, Java
+Frameworks: Django, React
+Tools: Git, Docker, Postman
+
+CERTIFICATIONS
+AWS Certified Cloud Practitioner

@@ -1,0 +1,28 @@
+Nora Patel
+Full Stack Developer
+nora.patel@example.com | +61 412 000 111 | Melbourne
+linkedin.com/in/norapatel | github.com/noracodes
+
+ABOUT
+Developer focused on web products, API design, and user-centered frontend experiences.
+
+EXPERIENCE
+Full Stack Developer at BlueCart / Melbourne / Sep 2021 - Present / Full-time
+* Built order management flows in React + FastAPI
+* Improved API response times by 30% with query optimization
+* Added automated integration tests in CI pipeline
+
+Software Developer at PixelHealth / Melbourne / Jan 2019 - Aug 2021 / Full-time
+* Created appointment booking APIs and notification workflows
+* Built dashboards for support teams using Vue and Node.js
+
+EDUCATION
+Bachelor of Software Engineering at RMIT University, 2015 - 2018
+
+SKILLS
+Frontend: React, Vue, TypeScript
+Backend: Python, FastAPI, Node.js
+Databases: PostgreSQL, Redis
+
+CERTIFICATIONS
+Microsoft Azure Fundamentals

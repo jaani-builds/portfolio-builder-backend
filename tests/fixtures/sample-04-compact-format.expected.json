@@ -1,0 +1,14 @@
+{
+  "basics": {
+    "name": "Nora Patel",
+    "role": "Full Stack Developer",
+    "email": "nora.patel@example.com",
+    "phone": "+61 412 000 111"
+  },
+  "counts": {
+    "experience": 2,
+    "education": 1,
+    "certifications": 1
+  },
+  "min_skill_groups": 3
+}

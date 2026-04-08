@@ -1,0 +1,33 @@
+Daniel Kim
+Machine Learning Engineer
+daniel.kim@example.com | +44 7700 900123 | London, UK
+linkedin.com/in/danielkimml
+github.com/dkim-ml
+
+PROFILE
+ML engineer specializing in recommendation systems, NLP pipelines, and scalable model serving for consumer applications.
+
+EXPERIENCE
+Machine Learning Engineer | StreamHub | Feb 2021 - Present
+London, UK | Full-time
+- Built recommendation ranking models improving CTR by 12%
+- Designed feature store ingestion jobs on Airflow and Spark
+- Deployed inference APIs with FastAPI and autoscaling on Kubernetes
+
+Data Scientist | Insight Retail | Aug 2017 - Jan 2021
+London, UK | Full-time
+- Developed churn prediction and customer segmentation models
+- Automated model retraining and drift detection workflows
+- Partnered with product teams to launch personalized campaigns
+
+EDUCATION
+MSc Data Science | Imperial College London | 2015 - 2016
+BSc Mathematics | University of Bristol | 2011 - 2014
+
+SKILLS
+ML: PyTorch, scikit-learn, XGBoost
+Data: Python, SQL, Spark, Airflow
+MLOps: FastAPI, Docker, Kubernetes, MLflow
+
+CERTIFICATIONS
+Google Professional Machine Learning Engineer

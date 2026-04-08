@@ -1,0 +1,32 @@
+Alex Morgan
+Senior Platform Engineer
+alex.morgan@example.com | +1 415 555 0198 | San Francisco, USA
+linkedin.com/in/alex-morgan-platform | github.com/alexmorgan
+
+SUMMARY
+Platform engineer with 9+ years building cloud-native systems, internal developer platforms, and CI/CD automation across fintech and travel domains.
+
+EXPERIENCE
+Senior Platform Engineer | OrbitPay | Jan 2022 - Present
+San Francisco, USA | Full-time
+- Led migration from Jenkins to GitHub Actions for 60+ services
+- Implemented reusable Terraform modules reducing setup time by 45%
+- Introduced observability standards with Datadog dashboards and SLOs
+
+DevOps Engineer | SkyRoute | Mar 2018 - Dec 2021
+Remote | Full-time
+- Built Kubernetes deployment pipelines and Helm release workflows
+- Reduced cloud costs by 20% through rightsizing and autoscaling controls
+- Supported incident response and postmortem process improvements
+
+EDUCATION
+BSc Computer Science | University of Washington | 2010 - 2014
+
+SKILLS
+Cloud: AWS, Kubernetes, Terraform
+Programming: Python, Go, Bash
+Tools: GitHub Actions, Datadog, Splunk, Prometheus
+
+CERTIFICATIONS
+AWS Certified Solutions Architect - Professional
+Certified Kubernetes Administrator (CKA)

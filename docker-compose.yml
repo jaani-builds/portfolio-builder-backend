@@ -1,0 +1,52 @@
+services:
+  localstack:
+    image: localstack/localstack:3.0
+    container_name: portfolio-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,dynamodb,apigateway,lambda,iam,logs,cloudwatch,sns
+      - DEBUG=0
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - LOCALSTACK_API_ENFORCEMENT_ENABLED=0
+      - DISABLE_EVENTS=1
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - portfolio-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: portfolio-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - APP_BASE_URL=http://localhost:8000
+      - FRONTEND_URL=http://localhost:5174
+      - JWT_SECRET=supersecretkey-change-me-in-production-12345678
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
+      - AWS_S3_BUCKET=portfolio-builder-local
+      - AWS_DDB_TABLE=portfolio-builder-local-metadata
+      - AWS_S3_PREFIX=portfolio-builder
+      - AWS_PUBLIC_BASE_URL=${AWS_PUBLIC_BASE_URL:-}
+      - AWS_INSECURE_SSL=${AWS_INSECURE_SSL:-false}
+      - PORTFOLIO_TEMPLATE_DIR=/app/portfolio_template
+    volumes:
+      - ./data:/app/data
+      - ../jaani-builds.github.io:/app/portfolio_template:ro
+    depends_on:
+      - localstack
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - portfolio-network
+
+networks:
+  portfolio-network:
+    driver: bridge

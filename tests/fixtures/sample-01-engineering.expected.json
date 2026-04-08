@@ -1,0 +1,14 @@
+{
+  "basics": {
+    "name": "Alex Morgan",
+    "role": "Senior Platform Engineer",
+    "email": "alex.morgan@example.com",
+    "phone": "+1 415 555 0198"
+  },
+  "counts": {
+    "experience": 2,
+    "education": 1,
+    "certifications": 2
+  },
+  "min_skill_groups": 3
+}
