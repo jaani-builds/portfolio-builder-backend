@@ -9,3 +9,5 @@ __pycache__/
 # Local runtime artifacts
 data/
 .pytest_cache/
+build/
+dist/
