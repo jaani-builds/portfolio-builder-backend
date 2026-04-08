@@ -48,7 +48,7 @@ rm -rf dist build
 mkdir -p build/python dist
 
 # Install dependencies
-pip install -q -r requirements.txt -t build/python
+python3 -m pip install -q -r requirements.txt -t build/python
 
 # Copy app code
 cp -R app lambda_handler.py build/python/
