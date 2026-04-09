@@ -173,21 +173,20 @@ jobs:
       - name: Terraform Plan Bootstrap
         working-directory: infra/terraform
         run: |
-          terraform plan \
-            -target=aws_iam_openid_connect_provider.github \
-            -target=aws_iam_role.github_terraform \
-            -target=aws_iam_role_policy.github_terraform \
-            -out=tfplan
+            terraform plan -out=tfplan
 
       - name: Terraform Apply Bootstrap
         working-directory: infra/terraform
         run: terraform apply -auto-approve tfplan
 
       - name: Extract GitHub OIDC Role ARN
-        working-directory: infra/terraform
         run: |
-          ROLE_ARN=$(terraform output -raw github_role_arn)
+            ROLE_ARN=$(aws iam get-role \
+              --role-name "portfolio-builder-prod-github-terraform-role" \
+              --query "Role.Arn" \
+              --output text)
           echo "github_role_arn=$ROLE_ARN" >> $GITHUB_OUTPUT
+            echo "GitHub OIDC Role ARN: $ROLE_ARN"
         id: output
 
       - name: Display Next Steps
