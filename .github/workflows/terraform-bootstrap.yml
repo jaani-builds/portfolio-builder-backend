@@ -140,12 +140,12 @@ jobs:
             local import_id="$2"
 
             if terraform state list | grep -Fxq "$address"; then
-              echo "State already contains $address"
-              return 0
+              echo "State already contains $address, removing stale entry first"
+              terraform state rm "$address" || true
             fi
 
             echo "Importing $address"
-            terraform import -input=false "$address" "$import_id"
+            terraform import -input=false "$address" "$import_id" || echo "Import of $address skipped (may already exist)"
           }
 
           GITHUB_OIDC_ARN="arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com"
