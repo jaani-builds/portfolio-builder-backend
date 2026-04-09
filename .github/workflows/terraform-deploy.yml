@@ -1,0 +1,77 @@
+name: Terraform Deploy (Production - OIDC)
+
+# Runs on push to main after bootstrap-terraform.yml has completed
+# Prerequisites: AWS_ROLE_ARN secret must be set (from bootstrap workflow)
+# 
+# To enable this workflow:
+# 1. Run bootstrap-terraform.yml workflow manually
+# 2. Add the github_role_arn output as GitHub secret: AWS_ROLE_ARN
+# 3. Delete bootstrap-terraform.yml
+# 4. Push code to main
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/terraform/**'
+      - 'app/**'
+      - '.github/workflows/terraform-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ap-southeast-2
+      TF_VAR_file: infra/terraform/terraform.tfvars.production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.14.8
+
+      - name: Configure AWS credentials via OIDC (no stored secrets)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: infra/terraform
+        run: terraform init
+
+      - name: Terraform Format Check
+        working-directory: infra/terraform
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        working-directory: infra/terraform
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: infra/terraform
+        run: terraform plan -var-file=terraform.tfvars.production -out=tfplan
+        env:
+          TF_LOG: INFO
+
+      - name: Terraform Apply
+        working-directory: infra/terraform
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: terraform apply -auto-approve tfplan
+
+      - name: Upload Terraform State
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-state
+          path: infra/terraform/
+          retention-days: 5

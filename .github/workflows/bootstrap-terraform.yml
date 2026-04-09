@@ -1,0 +1,102 @@
+name: Terraform Bootstrap (ONE-TIME SETUP)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ap-southeast-2
+      TF_VAR_file: infra/terraform/terraform.tfvars.production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.14.8
+
+      - name: Configure AWS credentials (temporary - for bootstrap only)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS Account
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          echo "AWS Account: $ACCOUNT_ID"
+          if [ "$ACCOUNT_ID" != "353695642481" ]; then
+            echo "ERROR: Wrong AWS account! Expected 353695642481, got $ACCOUNT_ID"
+            exit 1
+          fi
+
+      - name: Terraform Init
+        working-directory: infra/terraform
+        run: terraform init -backend=false
+
+      - name: Terraform Plan Backend Bootstrap
+        working-directory: infra/terraform
+        run: |
+          terraform plan -var-file=terraform.tfvars.production \
+            -target=aws_s3_bucket.terraform_state \
+            -target=aws_s3_bucket_versioning.terraform_state \
+            -target=aws_s3_bucket_server_side_encryption_configuration.terraform_state \
+            -target=aws_s3_bucket_public_access_block.terraform_state \
+            -target=aws_dynamodb_table.terraform_locks \
+            -out=tfplan.backend
+
+      - name: Terraform Apply Backend Bootstrap
+        working-directory: infra/terraform
+        run: terraform apply -auto-approve tfplan.backend
+
+      - name: Terraform Init Remote Backend
+        working-directory: infra/terraform
+        run: terraform init -migrate-state -force-copy
+
+      - name: Terraform Plan Bootstrap
+        working-directory: infra/terraform
+        run: terraform plan -var-file=terraform.tfvars.production -out=tfplan
+
+      - name: Terraform Apply Bootstrap
+        working-directory: infra/terraform
+        run: terraform apply -auto-approve tfplan
+
+      - name: Extract GitHub OIDC Role ARN
+        working-directory: infra/terraform
+        run: |
+          ROLE_ARN=$(terraform output -raw github_role_arn)
+          echo "github_role_arn=$ROLE_ARN" >> $GITHUB_OUTPUT
+        id: output
+
+      - name: Display Next Steps
+        run: |
+          cat << 'EOF'
+          ✅ Bootstrap Complete!
+          
+          Next steps:
+          1. Add this GitHub secret (Settings → Secrets and variables → Actions):
+             Name: AWS_ROLE_ARN
+             Value: ${{ steps.output.outputs.github_role_arn }}
+          
+          2. Delete AWS credential secrets:
+             - AWS_ACCESS_KEY_ID
+             - AWS_SECRET_ACCESS_KEY
+          
+          3. Delete this workflow file:
+             .github/workflows/bootstrap-terraform.yml
+          
+           4. Delete temporary bootstrap Terraform file:
+             infra/terraform/state-backend.tf
+
+           5. Push to trigger the permanent OIDC-based deployment workflow
+          
+          After that, all deployments will use OIDC (no stored secrets).
+          EOF

@@ -12,6 +12,9 @@ terraform {
 provider "aws" {
   region = var.aws_region
 
+  skip_credentials_validation = var.use_localstack
+  skip_requesting_account_id  = var.use_localstack
+
   # LocalStack configuration for local development
   dynamic "endpoints" {
     for_each = var.use_localstack ? [1] : []
@@ -26,15 +29,6 @@ provider "aws" {
       cloudwatch     = var.localstack_endpoint
       sns            = var.localstack_endpoint
       acm            = var.localstack_endpoint
-    }
-  }
-
-  # LocalStack doesn't validate credentials, so we can use dummy values
-  dynamic "skip_credentials_validation" {
-    for_each = var.use_localstack ? [1] : []
-    content {
-      skip_credentials_validation = true
-      skip_requesting_account_id  = true
     }
   }
 }

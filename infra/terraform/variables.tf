@@ -47,13 +47,19 @@ variable "lambda_zip_path" {
 variable "lambda_memory_size" {
   description = "Lambda memory in MB"
   type        = number
-  default     = 512
+  default     = 128
 }
 
 variable "lambda_timeout" {
   description = "Lambda timeout in seconds"
   type        = number
-  default     = 30
+  default     = 15
+}
+
+variable "log_retention_days" {
+  description = "CloudWatch log retention in days"
+  type        = number
+  default     = 3
 }
 
 variable "aws_s3_prefix" {
@@ -89,6 +95,24 @@ variable "create_billing_alarm" {
   description = "Create EstimatedCharges alarm (requires billing metrics enabled, best in us-east-1)"
   type        = bool
   default     = true
+}
+
+variable "enable_api_gateway_access_logs" {
+  description = "Enable API Gateway access logs to CloudWatch"
+  type        = bool
+  default     = false
+}
+
+variable "enable_operational_alarms" {
+  description = "Enable CloudWatch operational alarms (Lambda/API/DynamoDB)"
+  type        = bool
+  default     = false
+}
+
+variable "enable_operations_dashboard" {
+  description = "Enable CloudWatch dashboard"
+  type        = bool
+  default     = false
 }
 
 variable "api_custom_domain" {

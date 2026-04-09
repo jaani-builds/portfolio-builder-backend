@@ -164,7 +164,7 @@ resource "aws_lambda_function" "api" {
 
 resource "aws_cloudwatch_log_group" "lambda" {
   name              = "/aws/lambda/${aws_lambda_function.api.function_name}"
-  retention_in_days = 14
+  retention_in_days = var.log_retention_days
 }
 
 resource "aws_apigatewayv2_api" "http" {
@@ -192,8 +192,9 @@ resource "aws_apigatewayv2_route" "proxy" {
 }
 
 resource "aws_cloudwatch_log_group" "api_gateway" {
+  count             = var.enable_api_gateway_access_logs ? 1 : 0
   name              = "/aws/apigateway/${local.name}"
-  retention_in_days = 14
+  retention_in_days = var.log_retention_days
 }
 
 resource "aws_apigatewayv2_stage" "default" {
@@ -201,19 +202,22 @@ resource "aws_apigatewayv2_stage" "default" {
   name        = "$default"
   auto_deploy = true
 
-  access_log_settings {
-    destination_arn = aws_cloudwatch_log_group.api_gateway.arn
-    format = jsonencode({
-      requestId        = "$context.requestId"
-      ip               = "$context.identity.sourceIp"
-      requestTime      = "$context.requestTime"
-      httpMethod       = "$context.httpMethod"
-      routeKey         = "$context.routeKey"
-      status           = "$context.status"
-      protocol         = "$context.protocol"
-      responseLength   = "$context.responseLength"
-      integrationError = "$context.integration.error"
-    })
+  dynamic "access_log_settings" {
+    for_each = var.enable_api_gateway_access_logs ? [1] : []
+    content {
+      destination_arn = aws_cloudwatch_log_group.api_gateway[0].arn
+      format = jsonencode({
+        requestId        = "$context.requestId"
+        ip               = "$context.identity.sourceIp"
+        requestTime      = "$context.requestTime"
+        httpMethod       = "$context.httpMethod"
+        routeKey         = "$context.routeKey"
+        status           = "$context.status"
+        protocol         = "$context.protocol"
+        responseLength   = "$context.responseLength"
+        integrationError = "$context.integration.error"
+      })
+    }
   }
 }
 
@@ -251,6 +255,7 @@ resource "aws_lambda_permission" "apigw" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
+  count               = var.enable_operational_alarms ? 1 : 0
   alarm_name          = "${local.name}-lambda-errors"
   alarm_description   = "Alarm when Lambda reports errors"
   namespace           = "AWS/Lambda"
@@ -270,6 +275,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "lambda_throttles" {
+  count               = var.enable_operational_alarms ? 1 : 0
   alarm_name          = "${local.name}-lambda-throttles"
   alarm_description   = "Alarm when Lambda is throttled"
   namespace           = "AWS/Lambda"
@@ -288,6 +294,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_throttles" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "api_5xx" {
+  count               = var.enable_operational_alarms ? 1 : 0
   alarm_name          = "${local.name}-api-5xx"
   alarm_description   = "Alarm when API Gateway returns server errors"
   namespace           = "AWS/ApiGateway"
@@ -306,6 +313,7 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "ddb_throttles" {
+  count               = var.enable_operational_alarms ? 1 : 0
   alarm_name          = "${local.name}-ddb-throttles"
   alarm_description   = "Alarm when DynamoDB request throttling occurs"
   namespace           = "AWS/DynamoDB"
@@ -367,6 +375,7 @@ resource "aws_budgets_budget" "monthly" {
 }
 
 resource "aws_cloudwatch_dashboard" "operations" {
+  count          = var.enable_operations_dashboard ? 1 : 0
   dashboard_name = "${local.name}-operations"
 
   dashboard_body = jsonencode({

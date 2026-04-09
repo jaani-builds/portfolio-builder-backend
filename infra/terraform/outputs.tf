@@ -50,5 +50,5 @@ output "alerts_sns_topic_arn" {
 
 output "cloudwatch_dashboard_name" {
   description = "CloudWatch dashboard name for operations and cost visibility"
-  value       = aws_cloudwatch_dashboard.operations.dashboard_name
+  value       = var.enable_operations_dashboard ? aws_cloudwatch_dashboard.operations[0].dashboard_name : ""
 }
