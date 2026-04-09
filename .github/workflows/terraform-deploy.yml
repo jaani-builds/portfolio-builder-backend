@@ -28,7 +28,23 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_REGION: ap-southeast-2
-      TF_VAR_file: infra/terraform/terraform.tfvars.production
+      TF_VAR_aws_region: ap-southeast-2
+      TF_VAR_project_name: portfolio-builder
+      TF_VAR_environment: prod
+      TF_VAR_frontend_url: ${{ vars.FRONTEND_URL }}
+      TF_VAR_github_client_id: ${{ secrets.GITHUB_CLIENT_ID }}
+      TF_VAR_github_client_secret: ${{ secrets.GITHUB_CLIENT_SECRET }}
+      TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
+      TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+      TF_VAR_lambda_memory_size: "128"
+      TF_VAR_lambda_timeout: "15"
+      TF_VAR_log_retention_days: "3"
+      TF_VAR_monthly_budget_limit_usd: "5"
+      TF_VAR_budget_alert_threshold_percent: "80"
+      TF_VAR_create_billing_alarm: "false"
+      TF_VAR_enable_api_gateway_access_logs: "false"
+      TF_VAR_enable_operational_alarms: "false"
+      TF_VAR_enable_operations_dashboard: "false"
 
     steps:
       - name: Checkout code
@@ -59,7 +75,7 @@ jobs:
 
       - name: Terraform Plan
         working-directory: infra/terraform
-        run: terraform plan -var-file=terraform.tfvars.production -out=tfplan
+        run: terraform plan -out=tfplan
         env:
           TF_LOG: INFO
 

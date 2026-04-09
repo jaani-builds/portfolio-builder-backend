@@ -13,7 +13,7 @@
 # 7. GitHub Actions will maintain state in S3 going forward
 
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "portfolio-builder-terraform-state"
+  bucket = "portfolio-builder-terraform-state-353695642481"
 }
 
 resource "aws_s3_bucket_versioning" "terraform_state" {
