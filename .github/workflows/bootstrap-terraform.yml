@@ -56,7 +56,9 @@ jobs:
 
       - name: Terraform Init
         working-directory: infra/terraform
-        run: terraform init -backend=false
+        run: |
+          mv backend.tf backend.tf.remote
+          terraform init -reconfigure
 
       - name: Terraform Plan Backend Bootstrap
         working-directory: infra/terraform
@@ -75,7 +77,9 @@ jobs:
 
       - name: Terraform Init Remote Backend
         working-directory: infra/terraform
-        run: terraform init -migrate-state -force-copy
+        run: |
+          mv backend.tf.remote backend.tf
+          terraform init -reconfigure -migrate-state -force-copy
 
       - name: Terraform Plan Bootstrap
         working-directory: infra/terraform
