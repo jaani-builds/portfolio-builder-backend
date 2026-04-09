@@ -1,3 +1,6 @@
+# Portfolio Builder Backend Infrastructure
+# Deployed via GitHub Actions OIDC (no stored AWS credentials)
+
 locals {
   name              = "${var.project_name}-${var.environment}"
   use_custom_domain = length(trimspace(var.api_custom_domain)) > 0
@@ -351,6 +354,7 @@ resource "aws_cloudwatch_metric_alarm" "billing_estimated_charges" {
 }
 
 resource "aws_budgets_budget" "monthly" {
+  count        = var.create_billing_alarm ? 1 : 0
   name         = "${local.name}-monthly-cost-budget"
   budget_type  = "COST"
   limit_amount = tostring(var.monthly_budget_limit_usd)
