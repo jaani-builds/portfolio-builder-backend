@@ -63,6 +63,23 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build Lambda zip
+        run: |
+          set -euo pipefail
+          rm -rf dist build
+          mkdir -p build/python dist
+          python3 -m pip install -q -r requirements.txt -t build/python
+          cp -R app lambda_handler.py build/python/
+          cd build/python
+          zip -q -r "../../dist/lambda.zip" .
+          cd ../..
+          echo "Lambda zip size: $(du -sh dist/lambda.zip | cut -f1)"
+
       - name: Terraform Init
         working-directory: infra/terraform
         run: terraform init
