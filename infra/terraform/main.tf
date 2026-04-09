@@ -150,16 +150,16 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      APP_BASE_URL          = local.api_base_url
-      FRONTEND_URL          = var.frontend_url
-      JWT_SECRET            = var.jwt_secret
-      GITHUB_CLIENT_ID      = var.github_client_id
-      GITHUB_CLIENT_SECRET  = var.github_client_secret
-      AWS_REGION            = var.aws_region
-      AWS_S3_BUCKET         = aws_s3_bucket.portfolio.bucket
-      AWS_DDB_TABLE         = aws_dynamodb_table.portfolio.name
-      AWS_S3_PREFIX         = var.aws_s3_prefix
-      AWS_PUBLIC_BASE_URL   = var.aws_public_base_url
+      APP_BASE_URL           = local.api_base_url
+      FRONTEND_URL           = var.frontend_url
+      JWT_SECRET             = var.jwt_secret
+      GITHUB_CLIENT_ID       = var.github_client_id
+      GITHUB_CLIENT_SECRET   = var.github_client_secret
+      AWS_REGION             = var.aws_region
+      AWS_S3_BUCKET          = aws_s3_bucket.portfolio.bucket
+      AWS_DDB_TABLE          = aws_dynamodb_table.portfolio.name
+      AWS_S3_PREFIX          = var.aws_s3_prefix
+      AWS_PUBLIC_BASE_URL    = var.aws_public_base_url
       PORTFOLIO_TEMPLATE_DIR = "/var/task/portfolio_template"
     }
   }
@@ -362,18 +362,18 @@ resource "aws_budgets_budget" "monthly" {
   time_unit    = "MONTHLY"
 
   notification {
-    comparison_operator       = "GREATER_THAN"
-    threshold                 = var.budget_alert_threshold_percent
-    threshold_type            = "PERCENTAGE"
-    notification_type         = "FORECASTED"
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = var.budget_alert_threshold_percent
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "FORECASTED"
     subscriber_email_addresses = [var.alert_email]
   }
 
   notification {
-    comparison_operator       = "GREATER_THAN"
-    threshold                 = 100
-    threshold_type            = "PERCENTAGE"
-    notification_type         = "ACTUAL"
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
     subscriber_email_addresses = [var.alert_email]
   }
 }
@@ -391,10 +391,10 @@ resource "aws_cloudwatch_dashboard" "operations" {
         width  = 12
         height = 6
         properties = {
-          title   = "Lambda Invocations & Errors"
-          region  = var.aws_region
-          period  = 300
-          stat    = "Sum"
+          title  = "Lambda Invocations & Errors"
+          region = var.aws_region
+          period = 300
+          stat   = "Sum"
           metrics = [
             ["AWS/Lambda", "Invocations", "FunctionName", aws_lambda_function.api.function_name],
             ["AWS/Lambda", "Errors", "FunctionName", aws_lambda_function.api.function_name],
@@ -409,10 +409,10 @@ resource "aws_cloudwatch_dashboard" "operations" {
         width  = 12
         height = 6
         properties = {
-          title   = "API Gateway 4xx / 5xx"
-          region  = var.aws_region
-          period  = 300
-          stat    = "Sum"
+          title  = "API Gateway 4xx / 5xx"
+          region = var.aws_region
+          period = 300
+          stat   = "Sum"
           metrics = [
             ["AWS/ApiGateway", "4xx", "ApiId", aws_apigatewayv2_api.http.id],
             ["AWS/ApiGateway", "5xx", "ApiId", aws_apigatewayv2_api.http.id]
@@ -426,10 +426,10 @@ resource "aws_cloudwatch_dashboard" "operations" {
         width  = 12
         height = 6
         properties = {
-          title   = "DynamoDB Read/Write Capacity"
-          region  = var.aws_region
-          period  = 300
-          stat    = "Sum"
+          title  = "DynamoDB Read/Write Capacity"
+          region = var.aws_region
+          period = 300
+          stat   = "Sum"
           metrics = [
             ["AWS/DynamoDB", "ConsumedReadCapacityUnits", "TableName", aws_dynamodb_table.portfolio.name],
             ["AWS/DynamoDB", "ConsumedWriteCapacityUnits", "TableName", aws_dynamodb_table.portfolio.name]
@@ -443,9 +443,9 @@ resource "aws_cloudwatch_dashboard" "operations" {
         width  = 12
         height = 6
         properties = {
-          title   = "Lambda Duration (p50/p95/p99)"
-          region  = var.aws_region
-          period  = 300
+          title  = "Lambda Duration (p50/p95/p99)"
+          region = var.aws_region
+          period = 300
           metrics = [
             [{ expression = "METRICS()", id = "e1", label = "Duration", period = 300 }],
             ["AWS/Lambda", "Duration", "FunctionName", aws_lambda_function.api.function_name, { id = "m1", stat = "p50" }],
