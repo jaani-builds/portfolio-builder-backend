@@ -102,12 +102,13 @@ jobs:
             -target=aws_iam_role_policy.github_terraform \
             -target=aws_iam_role.lambda \
             -target=aws_iam_role_policy.lambda || true
+          sleep 10
         env:
           TF_LOG: INFO
 
       - name: Terraform Plan
         working-directory: infra/terraform
-        run: terraform plan -out=tfplan
+        run: terraform plan -refresh=false -out=tfplan
         env:
           TF_LOG: INFO
 
