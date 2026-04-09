@@ -92,9 +92,22 @@ jobs:
         working-directory: infra/terraform
         run: terraform validate
 
+      - name: Apply IAM Resources First
+        working-directory: infra/terraform
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          terraform apply -auto-approve \
+            -target=aws_iam_openid_connect_provider.github \
+            -target=aws_iam_role.github_terraform \
+            -target=aws_iam_role_policy.github_terraform \
+            -target=aws_iam_role.lambda \
+            -target=aws_iam_role_policy.lambda || true
+        env:
+          TF_LOG: INFO
+
       - name: Terraform Plan
         working-directory: infra/terraform
-        run: terraform plan -refresh=false -out=tfplan
+        run: terraform plan -out=tfplan
         env:
           TF_LOG: INFO
 
