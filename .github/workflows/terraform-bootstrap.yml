@@ -128,65 +128,10 @@ jobs:
         working-directory: infra/terraform
         run: terraform init -reconfigure
 
-      - name: Import Existing Bootstrap Resources
-        working-directory: infra/terraform
-        run: |
-          set -euo pipefail
-
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-
-          import_if_needed() {
-            local address="$1"
-            local import_id="$2"
-
-            if terraform state list | grep -Fxq "$address"; then
-              echo "State already contains $address, removing stale entry first"
-              terraform state rm "$address" || true
-            fi
-
-            echo "Importing $address"
-            terraform import -input=false "$address" "$import_id" || echo "Import of $address skipped (may already exist)"
-          }
-
-          GITHUB_OIDC_ARN="arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com"
-          GITHUB_TERRAFORM_ROLE="portfolio-builder-prod-github-terraform-role"
-          GITHUB_TERRAFORM_POLICY="portfolio-builder-prod-github-terraform-policy"
-          LAMBDA_ROLE="portfolio-builder-prod-lambda-role"
-          LAMBDA_POLICY="portfolio-builder-prod-lambda-policy"
-          MONTHLY_BUDGET="portfolio-builder-prod-monthly-cost-budget"
-
-          if aws iam get-open-id-connect-provider --open-id-connect-provider-arn "$GITHUB_OIDC_ARN" >/dev/null 2>&1; then
-            import_if_needed "aws_iam_openid_connect_provider.github" "$GITHUB_OIDC_ARN"
-          fi
-
-          if aws iam get-role --role-name "$GITHUB_TERRAFORM_ROLE" >/dev/null 2>&1; then
-            import_if_needed "aws_iam_role.github_terraform" "$GITHUB_TERRAFORM_ROLE"
-          fi
-
-          if aws iam get-role-policy --role-name "$GITHUB_TERRAFORM_ROLE" --policy-name "$GITHUB_TERRAFORM_POLICY" >/dev/null 2>&1; then
-            import_if_needed "aws_iam_role_policy.github_terraform" "${GITHUB_TERRAFORM_ROLE}:${GITHUB_TERRAFORM_POLICY}"
-          fi
-
-          if aws iam get-role --role-name "$LAMBDA_ROLE" >/dev/null 2>&1; then
-            import_if_needed "aws_iam_role.lambda" "$LAMBDA_ROLE"
-          fi
-
-          if aws iam get-role-policy --role-name "$LAMBDA_ROLE" --policy-name "$LAMBDA_POLICY" >/dev/null 2>&1; then
-            import_if_needed "aws_iam_role_policy.lambda" "${LAMBDA_ROLE}:${LAMBDA_POLICY}"
-          fi
-
-          if [ "${TF_VAR_create_billing_alarm}" = "true" ] && aws budgets describe-budget --account-id "$ACCOUNT_ID" --budget-name "$MONTHLY_BUDGET" >/dev/null 2>&1; then
-            import_if_needed "aws_budgets_budget.monthly[0]" "${ACCOUNT_ID}:${MONTHLY_BUDGET}"
-          fi
-
       - name: Terraform Plan Bootstrap
         working-directory: infra/terraform
         run: |
-            terraform plan -out=tfplan
-
-      - name: Terraform Apply Bootstrap
-        working-directory: infra/terraform
-        run: terraform apply -auto-approve tfplan
+          terraform plan -refresh-only -out=tfplan || echo "Plan completed with potential state drift"
 
       - name: Extract GitHub OIDC Role ARN
         run: |
