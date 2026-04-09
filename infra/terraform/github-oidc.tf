@@ -47,32 +47,8 @@ resource "aws_iam_role_policy" "github_terraform" {
     Statement = [
       {
         Effect = "Allow"
-        Action = [
-          "s3:*",
-          "dynamodb:*",
-          "lambda:*",
-          "apigatewayv2:*",
-          "iam:*",
-          "sns:*",
-          "cloudwatch:*",
-          "logs:*",
-          "budgets:*",
-          "ec2:*",
-          "sts:GetCallerIdentity"
-        ]
+        Action = "*"
         Resource = "*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "s3:ListBucket",
-          "s3:GetObject",
-          "s3:PutObject"
-        ]
-        Resource = [
-          "arn:aws:s3:::${local.name}-terraform-state-*",
-          "arn:aws:s3:::${local.name}-terraform-state-*/*"
-        ]
       }
     ]
   })
