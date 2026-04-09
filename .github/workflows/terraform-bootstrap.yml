@@ -190,12 +190,12 @@ jobs:
 
       - name: Extract GitHub OIDC Role ARN
         run: |
-            ROLE_ARN=$(aws iam get-role \
-              --role-name "portfolio-builder-prod-github-terraform-role" \
-              --query "Role.Arn" \
-              --output text)
+          ROLE_ARN=$(aws iam get-role \
+            --role-name "portfolio-builder-prod-github-terraform-role" \
+            --query "Role.Arn" \
+            --output text)
           echo "github_role_arn=$ROLE_ARN" >> $GITHUB_OUTPUT
-            echo "GitHub OIDC Role ARN: $ROLE_ARN"
+          echo "GitHub OIDC Role ARN: $ROLE_ARN"
         id: output
 
       - name: Display Next Steps
