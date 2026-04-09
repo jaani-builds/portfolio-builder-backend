@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/bootstrap-terraform.yml'
+      - '.github/workflows/terraform-bootstrap.yml'
       - 'infra/terraform/github-oidc.tf'
       - 'infra/terraform/versions.tf'
       - 'infra/terraform/variables.tf'
@@ -213,7 +213,7 @@ jobs:
              - AWS_SECRET_ACCESS_KEY
           
           3. Delete this workflow file:
-             .github/workflows/bootstrap-terraform.yml
+             .github/workflows/terraform-bootstrap.yml
 
            4. Delete temporary bootstrap AWS secrets:
              - AWS_ACCESS_KEY_ID
