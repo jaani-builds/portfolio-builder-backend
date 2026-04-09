@@ -1,6 +1,15 @@
 name: Terraform Bootstrap (ONE-TIME SETUP)
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/bootstrap-terraform.yml'
+      - 'infra/terraform/github-oidc.tf'
+      - 'infra/terraform/versions.tf'
+      - 'infra/terraform/variables.tf'
+      - 'infra/terraform/backend.tf'
   workflow_dispatch:
 
 permissions:
