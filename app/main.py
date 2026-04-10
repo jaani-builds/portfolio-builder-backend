@@ -68,7 +68,10 @@ def _cors_origin_regex() -> str | None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Path(settings.LOCAL_DATA_DIR).mkdir(parents=True, exist_ok=True)
+    local_data_dir = Path(settings.LOCAL_DATA_DIR)
+    if _is_lambda_env() and not str(local_data_dir).startswith("/tmp"):
+        local_data_dir = Path("/tmp") / local_data_dir.name
+    local_data_dir.mkdir(parents=True, exist_ok=True)
 
     # Validate portfolio template directory exists on startup.
     # In Lambda, missing templates should not crash auth/health routes.
