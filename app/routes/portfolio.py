@@ -40,6 +40,12 @@ class SlugRequest(BaseModel):
     @classmethod
     def validate_slug(cls, v: str) -> str:
         v = v.strip().lower()
+        # Auto-convert spaces to hyphens
+        v = re.sub(r'\s+', '-', v)
+        # Collapse multiple consecutive hyphens into one
+        v = re.sub(r'-+', '-', v)
+        # Strip leading/trailing hyphens
+        v = v.strip('-')
         if not _SLUG_RE.match(v):
             raise ValueError(
                 "Slug must be 3–50 lowercase alphanumeric characters or hyphens, "
