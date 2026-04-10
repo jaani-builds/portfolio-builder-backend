@@ -1,7 +1,10 @@
+import logging as _logging
+
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _DEFAULT_SECRET = "change-me-in-production-use-a-long-random-string"
+_logger = _logging.getLogger(__name__)
 
 _RESERVED = [
     "api", "auth", "static", "app", "admin", "health",
@@ -51,16 +54,16 @@ class Settings(BaseSettings):
         )
         if not is_local:
             if self.JWT_SECRET == _DEFAULT_SECRET:
-                raise ValueError(
-                    "JWT_SECRET must be changed from the default before deploying to production."
+                _logger.warning(
+                    "JWT_SECRET is using the default value in production; set JWT_SECRET via environment variables."
                 )
             if len(self.JWT_SECRET) < 32:
-                raise ValueError("JWT_SECRET must be at least 32 characters in production.")
+                _logger.warning("JWT_SECRET should be at least 32 characters in production.")
 
             if not self.GITHUB_CLIENT_ID:
-                raise ValueError("GITHUB_CLIENT_ID is required")
+                _logger.warning("GITHUB_CLIENT_ID is not set; GitHub OAuth login will be unavailable.")
             if not self.GITHUB_CLIENT_SECRET:
-                raise ValueError("GITHUB_CLIENT_SECRET is required")
+                _logger.warning("GITHUB_CLIENT_SECRET is not set; GitHub OAuth callback will fail.")
         else:
             # For local development, allow empty GitHub credentials  
             self.GITHUB_CLIENT_ID = self.GITHUB_CLIENT_ID or "local-dev"

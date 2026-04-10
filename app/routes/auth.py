@@ -47,6 +47,12 @@ async def _redirect_with_code(jwt: str) -> RedirectResponse:
 @router.get("/github")
 @limiter.limit("10/minute")
 async def login_github(request: Request):
+    if not settings.GITHUB_CLIENT_ID:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="GitHub OAuth is not configured: missing GITHUB_CLIENT_ID",
+        )
+
     state = generate_state("github")
     params = {
         "client_id": settings.GITHUB_CLIENT_ID,
@@ -64,6 +70,12 @@ async def callback_github(
     code: str = Query(...),
     state: str = Query(...),
 ):
+    if not settings.GITHUB_CLIENT_ID or not settings.GITHUB_CLIENT_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="GitHub OAuth is not configured: missing client credentials",
+        )
+
     if not verify_state(state, "github"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OAuth state")
 
