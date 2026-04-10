@@ -127,6 +127,18 @@ variable "api_acm_certificate_arn" {
   default     = ""
 }
 
+variable "portfolio_custom_domain" {
+  description = "Optional custom domain for public portfolio pages (for example portfolio.example.com)"
+  type        = string
+  default     = ""
+}
+
+variable "portfolio_acm_certificate_arn" {
+  description = "ACM certificate ARN in the same region as API Gateway for the portfolio custom domain"
+  type        = string
+  default     = ""
+}
+
 variable "use_localstack" {
   description = "Use LocalStack for local development instead of real AWS"
   type        = bool

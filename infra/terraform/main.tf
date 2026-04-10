@@ -2,13 +2,78 @@
 # Deployed via GitHub Actions OIDC (no stored AWS credentials)
 
 locals {
-  name              = "${var.project_name}-${var.environment}"
-  use_custom_domain = length(trimspace(var.api_custom_domain)) > 0
-  api_base_url      = local.use_custom_domain ? "https://${var.api_custom_domain}" : aws_apigatewayv2_stage.default.invoke_url
+  name                        = "${var.project_name}-${var.environment}"
+  use_custom_domain           = length(trimspace(var.api_custom_domain)) > 0
+  use_portfolio_custom_domain = length(trimspace(var.portfolio_custom_domain)) > 0
+  api_base_url                = local.use_custom_domain ? "https://${var.api_custom_domain}" : aws_apigatewayv2_stage.default.invoke_url
+}
+
+resource "aws_kms_key" "storage" {
+  description             = "KMS key for ${local.name} S3 object encryption"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+}
+
+resource "aws_kms_alias" "storage" {
+  name          = "alias/${local.name}-storage"
+  target_key_id = aws_kms_key.storage.key_id
+}
+
+data "aws_iam_policy_document" "alerts_kms" {
+  statement {
+    sid    = "AllowAccountRoot"
+    effect = "Allow"
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowSNSServiceUse"
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["sns.amazonaws.com"]
+    }
+    actions = [
+      "kms:Decrypt",
+      "kms:GenerateDataKey*",
+      "kms:Encrypt",
+      "kms:DescribeKey"
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_kms_key" "alerts" {
+  description             = "KMS key for ${local.name} SNS topic encryption"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.alerts_kms.json
+}
+
+resource "aws_kms_alias" "alerts" {
+  name          = "alias/${local.name}-alerts"
+  target_key_id = aws_kms_key.alerts.key_id
 }
 
 resource "aws_s3_bucket" "portfolio" {
   bucket = "${local.name}-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "portfolio" {
+  bucket = aws_s3_bucket.portfolio.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.storage.arn
+      sse_algorithm     = "aws:kms"
+    }
+    bucket_key_enabled = true
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "portfolio" {
@@ -58,7 +123,8 @@ resource "aws_dynamodb_table" "portfolio" {
 data "aws_caller_identity" "current" {}
 
 resource "aws_sns_topic" "alerts" {
-  name = "${local.name}-alerts"
+  name              = "${local.name}-alerts"
+  kms_master_key_id = aws_kms_key.alerts.arn
 }
 
 resource "aws_sns_topic_subscription" "email" {
@@ -128,6 +194,19 @@ data "aws_iam_policy_document" "lambda_permissions" {
       "dynamodb:UpdateItem"
     ]
     resources = [aws_dynamodb_table.portfolio.arn]
+  }
+
+  statement {
+    sid    = "KMSAccess"
+    effect = "Allow"
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey"
+    ]
+    resources = [aws_kms_key.storage.arn]
   }
 }
 
@@ -245,6 +324,31 @@ resource "aws_apigatewayv2_api_mapping" "custom" {
   count       = local.use_custom_domain ? 1 : 0
   api_id      = aws_apigatewayv2_api.http.id
   domain_name = aws_apigatewayv2_domain_name.custom[0].id
+  stage       = aws_apigatewayv2_stage.default.id
+}
+
+resource "aws_apigatewayv2_domain_name" "portfolio_custom" {
+  count       = local.use_portfolio_custom_domain ? 1 : 0
+  domain_name = var.portfolio_custom_domain
+
+  domain_name_configuration {
+    certificate_arn = var.portfolio_acm_certificate_arn
+    endpoint_type   = "REGIONAL"
+    security_policy = "TLS_1_2"
+  }
+
+  lifecycle {
+    precondition {
+      condition     = length(trimspace(var.portfolio_acm_certificate_arn)) > 0
+      error_message = "portfolio_acm_certificate_arn must be provided when portfolio_custom_domain is set."
+    }
+  }
+}
+
+resource "aws_apigatewayv2_api_mapping" "portfolio_custom" {
+  count       = local.use_portfolio_custom_domain ? 1 : 0
+  api_id      = aws_apigatewayv2_api.http.id
+  domain_name = aws_apigatewayv2_domain_name.portfolio_custom[0].id
   stage       = aws_apigatewayv2_stage.default.id
 }
 

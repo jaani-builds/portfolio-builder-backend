@@ -16,8 +16,14 @@ COPY app ./app
 # Template and local metadata directory are mounted at runtime.
 RUN mkdir -p /app/portfolio_template /app/data
 
+# Run as non-root inside the container.
+RUN useradd --create-home --uid 10001 appuser \
+	&& chown -R appuser:appuser /app
+
 ENV PORTFOLIO_TEMPLATE_DIR=/app/portfolio_template
 ENV APP_BASE_URL=http://localhost:8000
+
+USER appuser
 
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

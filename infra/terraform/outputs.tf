@@ -28,6 +28,26 @@ output "api_custom_domain_hosted_zone_id" {
   value       = local.use_custom_domain ? aws_apigatewayv2_domain_name.custom[0].domain_name_configuration[0].hosted_zone_id : ""
 }
 
+output "portfolio_base_url" {
+  description = "Base URL for public portfolio pages (portfolio custom domain when configured, otherwise API base URL)"
+  value       = local.use_portfolio_custom_domain ? "https://${var.portfolio_custom_domain}" : local.api_base_url
+}
+
+output "portfolio_custom_domain_name" {
+  description = "Configured custom portfolio domain name (empty when not configured)"
+  value       = local.use_portfolio_custom_domain ? var.portfolio_custom_domain : ""
+}
+
+output "portfolio_custom_domain_target" {
+  description = "DNS target for CNAME record when using custom portfolio domain"
+  value       = local.use_portfolio_custom_domain ? aws_apigatewayv2_domain_name.portfolio_custom[0].domain_name_configuration[0].target_domain_name : ""
+}
+
+output "portfolio_custom_domain_hosted_zone_id" {
+  description = "Hosted zone ID for portfolio custom domain alias records"
+  value       = local.use_portfolio_custom_domain ? aws_apigatewayv2_domain_name.portfolio_custom[0].domain_name_configuration[0].hosted_zone_id : ""
+}
+
 output "lambda_function_name" {
   description = "Lambda function name"
   value       = aws_lambda_function.api.function_name

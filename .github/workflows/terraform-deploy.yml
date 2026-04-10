@@ -50,6 +50,10 @@ jobs:
       TF_VAR_enable_api_gateway_access_logs: "false"
       TF_VAR_enable_operational_alarms: "false"
       TF_VAR_enable_operations_dashboard: "false"
+      TF_VAR_api_custom_domain: ${{ vars.API_CUSTOM_DOMAIN || '' }}
+      TF_VAR_api_acm_certificate_arn: ${{ vars.API_ACM_CERTIFICATE_ARN || '' }}
+      TF_VAR_portfolio_custom_domain: ${{ vars.PORTFOLIO_CUSTOM_DOMAIN || '' }}
+      TF_VAR_portfolio_acm_certificate_arn: ${{ vars.PORTFOLIO_ACM_CERTIFICATE_ARN || '' }}
 
     steps:
       - name: Checkout code

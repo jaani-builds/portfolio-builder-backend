@@ -34,6 +34,10 @@ aws_public_base_url = ""
 # api_custom_domain       = "api.yourdomain.com"
 # api_acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
+# Optional public portfolio custom domain setup
+# portfolio_custom_domain       = "portfolio.yourdomain.com"
+# portfolio_acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
+
 # Keep false for real AWS production
 use_localstack      = false
 localstack_endpoint = "http://localhost:4566"
