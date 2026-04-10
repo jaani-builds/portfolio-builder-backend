@@ -25,7 +25,7 @@ _GITHUB_EMAILS = "https://api.github.com/user/emails"
 
 
 def _callback_uri() -> str:
-    return f"{settings.APP_BASE_URL}/api/auth/callback/github"
+    return f"{settings.APP_BASE_URL.rstrip('/')}/api/auth/callback/github"
 
 
 def _user_key(github_id: int) -> str:
