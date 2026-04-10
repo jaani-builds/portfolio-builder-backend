@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 import logging as _logging
+import os
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -22,6 +23,10 @@ _logger = _logging.getLogger(__name__)
 
 def _is_local_env() -> bool:
     return any(h in settings.APP_BASE_URL for h in ("localhost", "127.0.0.1", "0.0.0.0"))
+
+
+def _is_lambda_env() -> bool:
+    return bool(os.getenv("AWS_LAMBDA_FUNCTION_NAME") or os.getenv("AWS_EXECUTION_ENV"))
 
 
 def _cors_origins() -> list[str]:
@@ -65,18 +70,27 @@ def _cors_origin_regex() -> str | None:
 async def lifespan(app: FastAPI):
     Path(settings.LOCAL_DATA_DIR).mkdir(parents=True, exist_ok=True)
 
-    # Validate portfolio template directory exists on startup (fail fast)
+    # Validate portfolio template directory exists on startup.
+    # In Lambda, missing templates should not crash auth/health routes.
     template_dir = Path(settings.PORTFOLIO_TEMPLATE_DIR).resolve()
     if not template_dir.exists():
-        raise RuntimeError(
+        msg = (
             f"Portfolio template directory not found: {template_dir}. "
             "Set PORTFOLIO_TEMPLATE_DIR env var to the jaani-builds.github.io checkout path."
         )
+        if _is_lambda_env():
+            _logger.warning(msg)
+        else:
+            raise RuntimeError(msg)
     if not (template_dir / "index.html").exists():
-        raise RuntimeError(
+        msg = (
             f"Portfolio template index.html not found in: {template_dir}. "
             "Ensure the portfolio template directory is complete."
         )
+        if _is_lambda_env():
+            _logger.warning(msg)
+        else:
+            raise RuntimeError(msg)
 
     await aws_store.ensure_tables()
     yield
