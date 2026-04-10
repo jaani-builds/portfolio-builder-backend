@@ -78,6 +78,12 @@ jobs:
           mkdir -p build/python dist
           python3 -m pip install -q -r requirements.txt -t build/python
           cp -R app lambda_handler.py build/python/
+
+          # Include static portfolio template expected by PORTFOLIO_TEMPLATE_DIR=/var/task/portfolio_template
+          git clone --depth 1 https://github.com/jaani-builds/jaani-builds.github.io.git build/template-src
+          mkdir -p build/python/portfolio_template
+          cp -R build/template-src/index.html build/template-src/assets build/template-src/data build/python/portfolio_template/
+
           cd build/python
           zip -q -r "../../dist/lambda.zip" .
           cd ../..
