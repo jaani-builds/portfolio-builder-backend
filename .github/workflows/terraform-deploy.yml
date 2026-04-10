@@ -120,6 +120,19 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: terraform apply -auto-approve tfplan
 
+      - name: Export Deployment Outputs
+        working-directory: infra/terraform
+        if: always()
+        run: |
+          API_BASE_URL="$(terraform output -raw api_base_url 2>/dev/null || true)"
+          LAMBDA_NAME="$(terraform output -raw lambda_function_name 2>/dev/null || true)"
+          echo "api_base_url=${API_BASE_URL}" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Deployment Outputs"
+            echo "- api_base_url: ${API_BASE_URL}"
+            echo "- lambda_function_name: ${LAMBDA_NAME}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload Terraform State
         if: always()
         uses: actions/upload-artifact@v4
