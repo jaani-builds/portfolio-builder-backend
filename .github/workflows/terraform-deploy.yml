@@ -126,7 +126,6 @@ jobs:
         run: |
           API_BASE_URL="$(terraform output -raw api_base_url 2>/dev/null || true)"
           LAMBDA_NAME="$(terraform output -raw lambda_function_name 2>/dev/null || true)"
-          echo "api_base_url=${API_BASE_URL}" >> "$GITHUB_OUTPUT"
           {
             echo "## Deployment Outputs"
             echo "- api_base_url: ${API_BASE_URL}"

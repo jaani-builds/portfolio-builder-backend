@@ -70,9 +70,9 @@ class Settings(BaseSettings):
             self.GITHUB_CLIENT_SECRET = self.GITHUB_CLIENT_SECRET or "local-dev"
 
         if not self.AWS_S3_BUCKET:
-            raise ValueError("AWS_S3_BUCKET is required")
+            _logger.warning("AWS_S3_BUCKET is not set; S3-backed features will be unavailable.")
         if not self.AWS_DDB_TABLE:
-            raise ValueError("AWS_DDB_TABLE is required")
+            _logger.warning("AWS_DDB_TABLE is not set; DynamoDB-backed features will be unavailable.")
         return self
 
 
