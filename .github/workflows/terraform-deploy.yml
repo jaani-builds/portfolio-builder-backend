@@ -16,6 +16,8 @@ on:
     paths:
       - 'infra/terraform/**'
       - 'app/**'
+      - 'lambda_handler.py'
+      - 'requirements.txt'
       - '.github/workflows/terraform-deploy.yml'
   workflow_dispatch:
 
@@ -40,6 +42,7 @@ jobs:
       TF_VAR_alert_email: ${{ vars.ALERT_EMAIL || 'jaaninickolas@icloud.com' }}
       TF_VAR_lambda_memory_size: "128"
       TF_VAR_lambda_timeout: "15"
+      TF_VAR_lambda_zip_path: ../../dist/lambda.zip
       TF_VAR_log_retention_days: "3"
       TF_VAR_monthly_budget_limit_usd: "5"
       TF_VAR_budget_alert_threshold_percent: "80"
