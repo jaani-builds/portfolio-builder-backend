@@ -92,7 +92,13 @@ async def lifespan(app: FastAPI):
         else:
             raise RuntimeError(msg)
 
-    await aws_store.ensure_tables()
+    try:
+        await aws_store.ensure_tables()
+    except Exception as exc:
+        if _is_lambda_env():
+            _logger.warning("Storage warm-up check failed during Lambda startup: %s", exc)
+        else:
+            raise
     yield
 
 
