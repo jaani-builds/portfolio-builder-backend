@@ -1,0 +1,160 @@
+{
+  "basics": {
+    "name": "Daniel Kim",
+    "role": "Machine Learning Engineer",
+    "email": "daniel.kim@example.com",
+    "phone": "+44 7700 900123",
+    "location": "City, Country",
+    "linkedin": "https://linkedin.com/in/your-profile",
+    "github": "https://github.com/your-username",
+    "photoUrl": ""
+  },
+  "meta": {
+    "title": "Daniel Kim | Machine Learning Engineer",
+    "description": "Short professional summary for SEO and social previews."
+  },
+  "sectionLabels": {
+    "about": "About me",
+    "experience": "Experience",
+    "education": "Education",
+    "skills": "Skills",
+    "certifications": "Certifications",
+    "experiments": "Experiments",
+    "recommendations": "Recommendations"
+  },
+  "publicUrl": "https://portfolio.handytools.work/daniel-kim/",
+  "summary": "Write a concise summary of your background, strengths, and impact.",
+  "pdfUrl": "assets/resume/resume.pdf",
+  "experience": [
+    {
+      "title": "Senior Product Engineer",
+      "company": "Example Company",
+      "location": "Remote",
+      "employmentType": "Full-time",
+      "start": "Jan 2022",
+      "end": "Present",
+      "highlights": [
+        "Led delivery of customer-facing features with measurable business impact.",
+        "Collaborated with cross-functional teams to improve reliability and release speed.",
+        "Introduced engineering practices that reduced defects and improved maintainability."
+      ]
+    },
+    {
+      "title": "Software Engineer",
+      "company": "Previous Company",
+      "location": "City, Country",
+      "employmentType": "Full-time",
+      "start": "Jun 2019",
+      "end": "Dec 2021",
+      "highlights": [
+        "Built and maintained APIs and frontend integrations used by internal teams.",
+        "Contributed to CI/CD improvements and automated test coverage.",
+        "Partnered with product and design to ship iterative improvements quickly."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "Master of Science in Computer Science",
+      "school": "Example University",
+      "start": "2017",
+      "end": "2019"
+    },
+    {
+      "degree": "Bachelor of Engineering in Software Engineering",
+      "school": "Another University",
+      "start": "2013",
+      "end": "2017"
+    }
+  ],
+  "recommendations": [
+    {
+      "name": "Colleague Name",
+      "role": "Engineering Manager",
+      "quote": "A dependable and thoughtful professional who consistently delivers high-quality work.",
+      "source": "LinkedIn Recommendation",
+      "linkedinUrl": "https://www.linkedin.com/in/your-profile/details/recommendations/"
+    }
+  ],
+  "recommendationsWidget": {
+    "enabled": false,
+    "provider": "sociablekit",
+    "widgetId": "",
+    "profileUrl": "https://www.linkedin.com/in/your-profile/details/recommendations/"
+  },
+  "experiments": [
+    {
+      "name": "Portfolio Project Name",
+      "type": "full-stack",
+      "backend": {
+        "tech": [
+          "FastAPI",
+          "Python",
+          "Terraform",
+          "AWS Lambda"
+        ],
+        "highlights": [
+          "Describe the API surface, authentication flow, and hosting model.",
+          "Highlight infrastructure automation, deployment consistency, or environment setup.",
+          "Call out the backend capabilities that support the product end to end."
+        ],
+        "links": [
+          {
+            "label": "API Demo",
+            "url": "https://example-api.example.com/docs"
+          },
+          {
+            "label": "Backend Repo",
+            "url": "https://github.com/your-username/backend-repo"
+          }
+        ]
+      },
+      "frontend": {
+        "tech": [
+          "Vanilla JS",
+          "HTML",
+          "CSS",
+          "Cloudflare Pages"
+        ],
+        "highlights": [
+          "Explain the user-facing workflow from sign-in to completion.",
+          "Describe the dashboard or publishing experience in clean, outcome-focused terms.",
+          "Mention the deployment style and why the frontend stays fast and simple."
+        ],
+        "links": [
+          {
+            "label": "Live Demo",
+            "url": "https://example-app.example.com"
+          },
+          {
+            "label": "Frontend Repo",
+            "url": "https://github.com/your-username/frontend-repo"
+          }
+        ]
+      }
+    }
+  ],
+  "skills": {
+    "Product & Delivery": [
+      "Agile Delivery",
+      "Stakeholder Communication",
+      "Roadmap Planning",
+      "Requirements Elicitation"
+    ],
+    "Engineering": [
+      "API Design",
+      "Microservices",
+      "CI/CD",
+      "Cloud Platforms"
+    ],
+    "Tools": [
+      "GitHub",
+      "Jira",
+      "Postman",
+      "Monitoring & Logging"
+    ]
+  },
+  "certifications": [
+    "Your Certification Name"
+  ]
+}

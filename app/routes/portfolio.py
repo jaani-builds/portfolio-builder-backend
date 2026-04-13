@@ -11,6 +11,7 @@ GET  /{slug}/data/resume.json  – serve resume JSON from S3
 """
 
 import re
+import json
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -30,6 +31,10 @@ _SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9\-]{1,48}[a-z0-9]$")
 
 def _template_dir() -> Path:
     return Path(settings.PORTFOLIO_TEMPLATE_DIR).resolve()
+
+
+def _live_example_json_path() -> Path:
+    return Path(__file__).resolve().parents[1] / "examples" / "resume.daniel-kim.json"
 
 
 class SlugRequest(BaseModel):
@@ -167,6 +172,53 @@ async def _get_resume_for_slug(slug: str) -> dict:
 
 
 # ── Public portfolio serving ─────────────────────────────────────────────────
+
+
+@router.get("/live-example/data/resume.json")
+async def serve_live_example_resume_json():
+    source = _live_example_json_path()
+    if not source.exists():
+        raise HTTPException(status_code=404, detail="Live example data not found")
+
+    try:
+        data = json.loads(source.read_text(encoding="utf-8"))
+    except Exception:
+        raise HTTPException(status_code=500, detail="Live example data is invalid")
+
+    data["publicUrl"] = "/live-example/"
+    return JSONResponse(content=data)
+
+
+@router.get("/live-example/assets/{asset_path:path}")
+async def serve_live_example_asset(asset_path: str):
+    template_dir = _template_dir()
+    target = (template_dir / "assets" / asset_path).resolve()
+    if not target.is_relative_to(template_dir):
+        raise HTTPException(status_code=400, detail="Invalid asset path")
+    if not target.exists() or not target.is_file():
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return FileResponse(target)
+
+
+@router.get("/live-example/", response_class=HTMLResponse)
+@router.get("/live-example", response_class=HTMLResponse)
+async def serve_live_example_portfolio():
+    # Verify example data exists before serving template shell
+    if not _live_example_json_path().exists():
+        raise HTTPException(status_code=404, detail="Live example data not found")
+
+    template_dir = _template_dir()
+    index_path = template_dir / "index.html"
+    if not index_path.exists():
+        raise HTTPException(status_code=503, detail="Portfolio template not found — check PORTFOLIO_TEMPLATE_DIR")
+
+    html = index_path.read_text(encoding="utf-8")
+    html = html.replace('href="assets/', 'href="/live-example/assets/')
+    html = html.replace("href='assets/", "href='/live-example/assets/")
+    html = html.replace('src="assets/', 'src="/live-example/assets/')
+    html = html.replace("src='assets/", "src='/live-example/assets/")
+
+    return HTMLResponse(content=html)
 
 
 @router.get("/{slug}/data/resume.json")
