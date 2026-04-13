@@ -12,6 +12,7 @@ PUT  /api/resume/json    – overwrite resume JSON (manual edits)
 from io import BytesIO
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from docx import Document
 from pypdf import PdfReader
 from pydantic import BaseModel, field_validator
 
@@ -25,6 +26,7 @@ router = APIRouter(prefix="/api/resume", tags=["resume"])
 
 _MAX_RESUME_CHARS = 50_000
 _MAX_PDF_BYTES = 10 * 1024 * 1024
+_MAX_FILE_BYTES = 10 * 1024 * 1024
 
 
 class UploadRequest(BaseModel):
@@ -95,28 +97,48 @@ async def extract_resume_pdf_text(
     file: UploadFile = File(...),
     current_user: UserProfile = Depends(get_current_user),
 ):
-    filename = file.filename or "resume.pdf"
-    if not filename.lower().endswith(".pdf") and file.content_type != "application/pdf":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Please upload a PDF file")
+    # Backward-compatible alias: PDF-only extraction
+    return await extract_resume_file_text(request=request, file=file, current_user=current_user)
 
+
+@router.post("/extract-file", status_code=status.HTTP_200_OK)
+@limiter.limit("10/minute")
+async def extract_resume_file_text(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: UserProfile = Depends(get_current_user),
+):
+    filename = (file.filename or "resume").lower()
     content = await file.read()
+
     if not content:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded PDF is empty")
-    if len(content) > _MAX_PDF_BYTES:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="PDF exceeds 10 MB limit")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file is empty")
+    if len(content) > _MAX_FILE_BYTES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File exceeds 10 MB limit")
+
+    is_pdf = filename.endswith(".pdf") or file.content_type == "application/pdf"
+    is_docx = filename.endswith(".docx") or file.content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+    if not (is_pdf or is_docx):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Please upload a PDF or DOCX file")
 
     try:
-        reader = PdfReader(BytesIO(content))
-        text_chunks = [(page.extract_text() or "") for page in reader.pages]
+        if is_pdf:
+            reader = PdfReader(BytesIO(content))
+            text_chunks = [(page.extract_text() or "") for page in reader.pages]
+            extracted = "\n\n".join(chunk.strip() for chunk in text_chunks if chunk.strip()).strip()
+        else:
+            doc = Document(BytesIO(content))
+            extracted = "\n".join((p.text or "").strip() for p in doc.paragraphs if (p.text or "").strip()).strip()
     except Exception:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not read this PDF")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not read this file")
 
-    extracted = "\n\n".join(chunk.strip() for chunk in text_chunks if chunk.strip()).strip()
     if not extracted:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No selectable text found in this PDF. It may be a scanned image PDF.",
+            detail="No extractable text found in this file.",
         )
+
     if len(extracted) > _MAX_RESUME_CHARS:
         extracted = extracted[:_MAX_RESUME_CHARS]
 
