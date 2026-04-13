@@ -133,6 +133,7 @@ jobs:
       - name: Export Deployment Outputs
         working-directory: infra/terraform
         if: always()
+        # outputs: api_base_url, api_custom_domain_target, portfolio_custom_domain_target
         run: |
           API_BASE_URL="$(terraform output -raw api_base_url 2>/dev/null || true)"
           API_CUSTOM_DOMAIN_TARGET="$(terraform output -raw api_custom_domain_target 2>/dev/null || true)"
