@@ -140,6 +140,27 @@ def _is_contact_line(line: str) -> bool:
     )
 
 
+def _title_case_if_allcaps(s: str) -> str:
+    """Title-case a string that is fully uppercase (e.g. PDF-extracted names)."""
+    stripped = s.strip()
+    letters = re.sub(r"[^A-Za-z]", "", stripped)
+    if letters and stripped == stripped.upper():
+        return stripped.title()
+    return stripped
+
+
+def _looks_like_skill_category(line: str) -> bool:
+    """Return True if this line looks like a skills section category header."""
+    s = line.strip()
+    if not s or _is_bullet(s) or "," in s or ":" in s or len(s) > 60:
+        return False
+    # No digits, not a sentence (no period mid-string)
+    if re.search(r"\d", s) or "." in s:
+        return False
+    # Either title-case / ALL-CAPS / single word
+    return True
+
+
 def _detect_section(line: str) -> str | None:
     stripped = line.strip().rstrip(":").lower()
     if not stripped:
@@ -202,11 +223,29 @@ def _parse_basics(header_lines: list[str]) -> dict[str, str]:
     ]
 
     if contact_free:
-        basics["name"] = contact_free[0]
+        basics["name"] = _title_case_if_allcaps(contact_free[0])
     if len(contact_free) >= 2:
         basics["role"] = contact_free[1]
-    if len(contact_free) >= 3:
+
+    # Location: prefer "City, Country" pattern anywhere in header lines;
+    # fall back to 3rd non-contact line.
+    _loc_pat = re.compile(r"^[A-Z][a-zA-Z .'-]+,\s*[A-Z][a-zA-Z .'-]+$")
+    for l in contact_free[2:]:
+        if _loc_pat.match(l.strip()):
+            basics["location"] = l.strip()
+            break
+    if not basics["location"] and len(contact_free) >= 3:
         basics["location"] = contact_free[2]
+
+    # Handle pipe-separated single-line header: "Name | Role | Location"
+    if len(contact_free) == 1 and "|" in contact_free[0]:
+        parts = [p.strip() for p in contact_free[0].split("|") if p.strip()]
+        if len(parts) >= 1:
+            basics["name"] = _title_case_if_allcaps(parts[0])
+        if len(parts) >= 2:
+            basics["role"] = parts[1]
+        if len(parts) >= 3:
+            basics["location"] = parts[2]
 
     return basics
 
@@ -234,31 +273,42 @@ def _parse_experience_block(block: list[str]) -> dict[str, Any] | None:
     entry["highlights"] = [_clean_bullet(l) for l in bullets if _clean_bullet(l)]
 
     # First non-bullet line → title | company | location
+    def _clean_header(line: str) -> str:
+        """Strip date range and employment type hints from a header line."""
+        s = _DATE_RANGE_RE.sub("", line)
+        for etype in _EMPLOYMENT_TYPES:
+            s = re.sub(re.escape(etype), "", s, flags=re.IGNORECASE)
+        return s.strip(" ,-|")
+
     if header_lines:
-        first = header_lines[0]
-        # Remove date range substring and employment type from parsing line
-        first_clean = _DATE_RANGE_RE.sub("", first)
+        first_clean = _clean_header(header_lines[0])
         parts = re.split(r"\s*[|/]\s*|\s+at\s+|\s*,\s*", first_clean)
         parts = [p.strip() for p in parts if p.strip()]
-        parts = [
-            p for p in parts
-            if not any(e.lower() in p.lower() for e in _EMPLOYMENT_TYPES)
-        ]
+
         if len(parts) >= 2:
+            # Same-line "Title | Company [| Location]" format
             entry["title"] = parts[0]
             entry["company"] = parts[1]
             if len(parts) >= 3:
                 entry["location"] = parts[2]
         elif len(parts) == 1:
+            # Title-only first line; look at subsequent header lines for company/location
             entry["title"] = parts[0]
-            if len(header_lines) > 1:
-                second = header_lines[1]
-                sec_parts = re.split(r"\s*[|/]\s*|\s*,\s*", second)
-                sec_parts = [p.strip() for p in sec_parts if p.strip()]
-                if sec_parts:
-                    entry["company"] = sec_parts[0]
-                if len(sec_parts) >= 2:
-                    entry["location"] = sec_parts[1]
+            remaining = header_lines[1:]
+            for i, hl in enumerate(remaining):
+                cleaned = _clean_header(hl)
+                if not cleaned:
+                    continue
+                sub_parts = re.split(r"\s*[|/,]\s*", cleaned)
+                sub_parts = [p.strip() for p in sub_parts if p.strip()]
+                if not entry["company"] and sub_parts:
+                    entry["company"] = sub_parts[0]
+                    if len(sub_parts) >= 2:
+                        entry["location"] = sub_parts[1]
+                elif not entry["location"] and sub_parts:
+                    entry["location"] = sub_parts[0]
+                if entry["company"] and entry["location"]:
+                    break
 
     return entry if (entry["title"] or entry["company"]) else None
 
@@ -336,26 +386,37 @@ def _parse_education(lines: list[str]) -> list[dict]:
 def _parse_skills(lines: list[str]) -> dict[str, list[str]]:
     skills: dict[str, list[str]] = {}
     default_cat = "Skills"
+    current_cat = default_cat
 
     for line in lines:
         stripped = line.strip()
         if not stripped:
             continue
 
-        # "Category: skill1, skill2" format
+        # "Category: skill1, skill2" format — highest confidence
         colon_m = re.match(r"^([^:]{2,50}):\s*(.+)$", stripped)
         if colon_m:
-            cat = colon_m.group(1).strip()
+            current_cat = colon_m.group(1).strip()
             items = [s.strip() for s in re.split(r"[,;]+", colon_m.group(2)) if s.strip()]
             if items:
-                skills.setdefault(cat, []).extend(items)
+                skills.setdefault(current_cat, []).extend(items)
             continue
 
-        # Bullet or plain line
+        # Bullet or comma-separated line → items for current category
         text = _clean_bullet(line) if _is_bullet(line) else stripped
         items = [s.strip() for s in re.split(r"[,;]+", text) if s.strip()]
-        if items:
-            skills.setdefault(default_cat, []).extend(items)
+
+        if len(items) > 1:
+            # Multiple items → skill list for current category
+            skills.setdefault(current_cat, []).extend(items)
+        elif len(items) == 1:
+            single = items[0]
+            # A standalone line with no bullet, no commas, and short:
+            # treat as a new category header (e.g. "Languages", "Frameworks")
+            if not _is_bullet(line) and _looks_like_skill_category(single):
+                current_cat = single
+            else:
+                skills.setdefault(current_cat, []).append(single)
 
     return skills
 
