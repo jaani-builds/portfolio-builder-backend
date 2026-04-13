@@ -109,24 +109,22 @@ terraform apply
 
 After apply, set the callback URL in your GitHub OAuth app to the Terraform output `github_oauth_callback_url`.
 
-For a frontend custom domain such as https://app.yourdomain.com:
+For the deployed environment:
 
-- GitHub OAuth Homepage URL: https://app.yourdomain.com
-- GitHub OAuth Authorization callback URL: https://<your-api-gateway-domain>/api/auth/callback/github
+- GitHub OAuth Homepage URL: https://app.portfolio.handytools.work
+- GitHub OAuth Authorization callback URL: https://api.portfolio.handytools.work/api/auth/callback/github
 
 ### 5. Point frontend to deployed API
 
-Use Terraform output `api_base_url` as your frontend API base.
+Set `window.__PB_API_BASE__` in `portfolio-builder-frontend/config.js`:
 
-If frontend is on Cloudflare Pages, open frontend as:
+```js
+window.__PB_API_BASE__ = "https://api.portfolio.handytools.work";
+```
 
-- `https://<your-pages-domain>/?apiBase=<api_base_url>`
+Also ensure Terraform variable `frontend_url` exactly matches your Pages origin:
 
-Also ensure Terraform variable `frontend_url` exactly matches your Pages origin.
-
-Example:
-
-- frontend_url = "https://app.yourdomain.com"
+- `frontend_url = "https://app.portfolio.handytools.work"`
 
 ### 6. Confirm monitoring notifications
 
@@ -136,18 +134,16 @@ Example:
 
 ### 7. Optional: backend custom domain
 
-If you want `api.yourdomain.com` instead of the default execute-api URL:
+Deployed custom domains:
 
-1. Request/validate an ACM certificate in the same region as API Gateway.
-2. Set Terraform variables:
-	- `api_custom_domain = "api.yourdomain.com"`
-	- `api_acm_certificate_arn = "<your-acm-certificate-arn>"`
-3. `terraform apply`.
-4. Create DNS record (for Cloudflare DNS):
-	- Type: `CNAME`
-	- Name: `api`
-	- Target: Terraform output `api_custom_domain_target`
-5. Update frontend runtime API config to use `https://api.yourdomain.com`.
+- API: `api.portfolio.handytools.work`
+  - ACM ARN: `arn:aws:acm:ap-southeast-1:353695642481:certificate/99d6a8c6-3073-4615-81fd-58ea41774f76`
+- Portfolio pages: `portfolio.handytools.work`
+  - ACM ARN: `arn:aws:acm:ap-southeast-1:353695642481:certificate/246d6dd5-c6c4-4f35-a7d2-9328cc96b745`
+
+DNS CNAME records required in Cloudflare:
+- `api.portfolio` → Terraform output `api_custom_domain_target`
+- `portfolio` → Terraform output `portfolio_custom_domain_target`
 
 ## Main API routes
 
