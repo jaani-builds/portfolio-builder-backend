@@ -135,10 +135,14 @@ jobs:
         if: always()
         run: |
           API_BASE_URL="$(terraform output -raw api_base_url 2>/dev/null || true)"
+          API_CUSTOM_DOMAIN_TARGET="$(terraform output -raw api_custom_domain_target 2>/dev/null || true)"
+          PORTFOLIO_CUSTOM_DOMAIN_TARGET="$(terraform output -raw portfolio_custom_domain_target 2>/dev/null || true)"
           LAMBDA_NAME="$(terraform output -raw lambda_function_name 2>/dev/null || true)"
           {
             echo "## Deployment Outputs"
             echo "- api_base_url: ${API_BASE_URL}"
+            echo "- api_custom_domain_target: ${API_CUSTOM_DOMAIN_TARGET}"
+            echo "- portfolio_custom_domain_target: ${PORTFOLIO_CUSTOM_DOMAIN_TARGET}"
             echo "- lambda_function_name: ${LAMBDA_NAME}"
           } >> "$GITHUB_STEP_SUMMARY"
 
