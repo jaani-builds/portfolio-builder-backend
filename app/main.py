@@ -14,6 +14,7 @@ from slowapi.errors import RateLimitExceeded
 from app.config import settings
 from app.rate_limit import limiter
 from app.routes.auth import router as auth_router
+from app.routes.payments import router as payments_router
 from app.routes.portfolio import router as portfolio_router
 from app.routes.resume import router as resume_router
 from app.services import aws_store
@@ -128,6 +129,7 @@ async def health():
 app.include_router(auth_router)
 app.include_router(resume_router)
 app.include_router(portfolio_router)
+app.include_router(payments_router)
 
 try:
     app.mount("/", StaticFiles(directory="static", html=True), name="static")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from typing import Any, Optional
 
 import boto3
@@ -199,3 +200,13 @@ async def get_and_delete_exchange_code(code: str) -> Optional[str]:
     if int(_time.time()) >= item.get("ttl", 0):
         return None
     return item.get("jwt")
+
+
+def payment_pk(payment_id: str) -> str:
+    return f"PAYMENT#{payment_id}"
+
+
+async def save_payment_log(entry: dict[str, Any]) -> str:
+    payment_id = str(uuid.uuid4())
+    _table.put_item(Item={"pk": payment_pk(payment_id), **entry})
+    return payment_id
