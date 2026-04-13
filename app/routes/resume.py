@@ -4,11 +4,15 @@ from __future__ import annotations
 Resume upload and retrieval routes.
 
 POST /api/resume/upload  – parse text, write to S3
+POST /api/resume/extract-pdf – extract text from uploaded PDF
 GET  /api/resume         – return stored resume JSON
 PUT  /api/resume/json    – overwrite resume JSON (manual edits)
 """
 
+from io import BytesIO
+
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from pypdf import PdfReader
 from pydantic import BaseModel, field_validator
 
 from app.dependencies import get_current_user
@@ -82,6 +86,41 @@ async def upload_resume(
     parsed = parse_resume(body.text)
     await _write_resume(current_user, parsed)
     return {"parsed": parsed}
+
+
+@router.post("/extract-pdf", status_code=status.HTTP_200_OK)
+@limiter.limit("10/minute")
+async def extract_resume_pdf_text(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: UserProfile = Depends(get_current_user),
+):
+    filename = file.filename or "resume.pdf"
+    if not filename.lower().endswith(".pdf") and file.content_type != "application/pdf":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Please upload a PDF file")
+
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded PDF is empty")
+    if len(content) > _MAX_PDF_BYTES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="PDF exceeds 10 MB limit")
+
+    try:
+        reader = PdfReader(BytesIO(content))
+        text_chunks = [(page.extract_text() or "") for page in reader.pages]
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not read this PDF")
+
+    extracted = "\n\n".join(chunk.strip() for chunk in text_chunks if chunk.strip()).strip()
+    if not extracted:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No selectable text found in this PDF. It may be a scanned image PDF.",
+        )
+    if len(extracted) > _MAX_RESUME_CHARS:
+        extracted = extracted[:_MAX_RESUME_CHARS]
+
+    return {"text": extracted}
 
 
 @router.get("")
