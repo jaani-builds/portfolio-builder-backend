@@ -32,6 +32,45 @@ variable "github_client_secret" {
   sensitive   = true
 }
 
+variable "google_client_id" {
+  description = "Google OAuth client ID"
+  type        = string
+  default     = ""
+}
+
+variable "google_client_secret" {
+  description = "Google OAuth client secret"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "linkedin_client_id" {
+  description = "LinkedIn OAuth client ID"
+  type        = string
+  default     = ""
+}
+
+variable "linkedin_client_secret" {
+  description = "LinkedIn OAuth client secret"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "apple_client_id" {
+  description = "Apple Sign In service ID"
+  type        = string
+  default     = ""
+}
+
+variable "apple_client_secret" {
+  description = "Apple Sign In client secret JWT"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "jwt_secret" {
   description = "JWT signing secret"
   type        = string

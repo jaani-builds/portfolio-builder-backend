@@ -22,6 +22,15 @@ class Settings(BaseSettings):
     GITHUB_CLIENT_ID: str = ""
     GITHUB_CLIENT_SECRET: str = ""
 
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+
+    LINKEDIN_CLIENT_ID: str = ""
+    LINKEDIN_CLIENT_SECRET: str = ""
+
+    APPLE_CLIENT_ID: str = ""
+    APPLE_CLIENT_SECRET: str = ""
+
     AWS_REGION: str = "us-east-1"
     AWS_S3_BUCKET: str = ""
     AWS_DDB_TABLE: str = ""
@@ -64,10 +73,28 @@ class Settings(BaseSettings):
                 _logger.warning("GITHUB_CLIENT_ID is not set; GitHub OAuth login will be unavailable.")
             if not self.GITHUB_CLIENT_SECRET:
                 _logger.warning("GITHUB_CLIENT_SECRET is not set; GitHub OAuth callback will fail.")
+            if not self.GOOGLE_CLIENT_ID:
+                _logger.warning("GOOGLE_CLIENT_ID is not set; Google OAuth login will be unavailable.")
+            if not self.GOOGLE_CLIENT_SECRET:
+                _logger.warning("GOOGLE_CLIENT_SECRET is not set; Google OAuth callback will fail.")
+            if not self.LINKEDIN_CLIENT_ID:
+                _logger.warning("LINKEDIN_CLIENT_ID is not set; LinkedIn OAuth login will be unavailable.")
+            if not self.LINKEDIN_CLIENT_SECRET:
+                _logger.warning("LINKEDIN_CLIENT_SECRET is not set; LinkedIn OAuth callback will fail.")
+            if not self.APPLE_CLIENT_ID:
+                _logger.warning("APPLE_CLIENT_ID is not set; Apple OAuth login will be unavailable.")
+            if not self.APPLE_CLIENT_SECRET:
+                _logger.warning("APPLE_CLIENT_SECRET is not set; Apple OAuth callback will fail.")
         else:
             # For local development, allow empty GitHub credentials  
             self.GITHUB_CLIENT_ID = self.GITHUB_CLIENT_ID or "local-dev"
             self.GITHUB_CLIENT_SECRET = self.GITHUB_CLIENT_SECRET or "local-dev"
+            self.GOOGLE_CLIENT_ID = self.GOOGLE_CLIENT_ID or "local-dev"
+            self.GOOGLE_CLIENT_SECRET = self.GOOGLE_CLIENT_SECRET or "local-dev"
+            self.LINKEDIN_CLIENT_ID = self.LINKEDIN_CLIENT_ID or "local-dev"
+            self.LINKEDIN_CLIENT_SECRET = self.LINKEDIN_CLIENT_SECRET or "local-dev"
+            self.APPLE_CLIENT_ID = self.APPLE_CLIENT_ID or "local-dev"
+            self.APPLE_CLIENT_SECRET = self.APPLE_CLIENT_SECRET or "local-dev"
 
         if not self.AWS_S3_BUCKET:
             _logger.warning("AWS_S3_BUCKET is not set; S3-backed features will be unavailable.")
