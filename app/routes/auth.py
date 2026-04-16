@@ -289,9 +289,23 @@ async def callback_google(
 @limiter.limit("10/minute")
 async def callback_linkedin(
     request: Request,
-    code: str = Query(...),
+    code: str | None = Query(None),
     state: str = Query(...),
+    error: str | None = Query(None),
+    error_description: str | None = Query(None),
 ):
+    if error:
+        detail = f"LinkedIn OAuth error: {error}"
+        if error_description:
+            detail = f"{detail} ({error_description})"
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
+
+    if not code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="LinkedIn OAuth callback missing authorization code",
+        )
+
     client_id, client_secret = _require_provider_creds("linkedin")
     if not verify_state(state, "linkedin"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OAuth state")
