@@ -58,6 +58,13 @@ _SECTION_KEYWORDS: dict[str, list[str]] = {
         "certifications", "certificates", "credentials", "licenses",
         "professional development", "accreditations",
     ],
+    "recommendations": [
+        "recommendations", "recommendation", "references", "reference", "testimonials", "testimonial",
+    ],
+    "experiments": [
+        "experiments", "experiment", "projects", "project", "personal projects", "side projects", "portfolio",
+        "open source",
+    ],
     "projects": [
         "projects", "personal projects", "side projects", "portfolio",
         "experiments", "open source",
@@ -161,13 +168,45 @@ def _looks_like_skill_category(line: str) -> bool:
     return True
 
 
+def _normalise_header_text(line: str) -> str:
+    """Normalise a potential section header for robust keyword matching."""
+    s = line.strip().lower()
+    s = s.rstrip(":")
+    s = s.replace("&", " ").replace("/", " ")
+    s = re.sub(r"[^a-z0-9\s]", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
 def _detect_section(line: str) -> str | None:
-    stripped = line.strip().rstrip(":").lower()
+    raw = line.strip()
+    if not raw:
+        return None
+
+    # Avoid treating normal sentence lines as headers.
+    if _is_bullet(raw) or len(raw) > 80 or "." in raw:
+        return None
+
+    stripped = _normalise_header_text(raw)
     if not stripped:
         return None
+
+    # Header-ish guardrails: short headline-like lines, or explicit section punctuation/style.
+    header_like = (
+        raw.endswith(":")
+        or raw == raw.upper()
+        or len(stripped.split()) <= 6
+    )
+    if not header_like:
+        return None
+
     for section, keywords in _SECTION_KEYWORDS.items():
         if stripped in keywords:
             return section
+        for kw in keywords:
+            # Support variants like "Recommendations & Testimonials" or "Projects / Experiments"
+            if re.search(rf"(^|\s){re.escape(kw)}($|\s)", stripped):
+                return section
     return None
 
 
@@ -429,6 +468,161 @@ def _parse_certifications(lines: list[str]) -> list[str]:
     ]
 
 
+def _parse_recommendations(lines: list[str]) -> list[dict[str, str]]:
+    recommendations: list[dict[str, str]] = []
+    current: dict[str, str] | None = None
+    pending_source = ""
+
+    for raw in lines:
+        line = raw.strip()
+        if not line:
+            continue
+
+        if line.lower() in {"recommendations", "references", "testimonials"}:
+            continue
+
+        if "recommendation" in line.lower() and "http" not in line.lower() and " - " not in line:
+            pending_source = line
+            if current and not current.get("source"):
+                current["source"] = line
+            continue
+
+        url_match = re.search(r"https?://\S+", line)
+        if url_match:
+            url = url_match.group(0).rstrip(").,")
+            source = pending_source
+            if " - " in line:
+                source = line.split(" - ", 1)[0].strip()
+            if current:
+                if source and not current.get("source"):
+                    current["source"] = source
+                current["linkedinUrl"] = url
+            else:
+                pending_source = source
+            continue
+
+        role_match = re.match(r"^(.+?)\s+-\s+(.+)$", line)
+        if role_match and "http" not in line.lower():
+            left = role_match.group(1).strip()
+            right = role_match.group(2).strip()
+
+            if "recommendation" in left.lower() and not current:
+                pending_source = left
+                continue
+
+            if current and (current.get("name") or current.get("quote")):
+                recommendations.append(current)
+
+            current = {
+                "name": left,
+                "role": right,
+                "quote": "",
+                "source": pending_source or "Recommendation",
+                "linkedinUrl": "",
+            }
+            continue
+
+        if current:
+            current["quote"] = f"{current.get('quote', '')} {line}".strip()
+
+    if current and (current.get("name") or current.get("quote")):
+        recommendations.append(current)
+
+    return recommendations
+
+
+def _parse_experiments(lines: list[str]) -> list[dict[str, Any]]:
+    experiments: list[dict[str, Any]] = []
+    current: dict[str, Any] | None = None
+    collecting_links = False
+
+    def _new_experiment(name: str, exp_type: str) -> dict[str, Any]:
+        return {
+            "name": name,
+            "type": exp_type,
+            "backend": {"tech": [], "highlights": [], "links": []},
+            "frontend": {"tech": [], "highlights": [], "links": []},
+            "_bullets": [],
+            "_links_text": "",
+        }
+
+    def _finalise(exp: dict[str, Any] | None) -> None:
+        if not exp or not exp.get("name"):
+            return
+
+        bullets = exp.pop("_bullets", [])
+        if bullets:
+            if exp["backend"]["tech"] and exp["frontend"]["tech"] and len(bullets) >= 2:
+                split_at = len(bullets) // 2
+                exp["backend"]["highlights"] = bullets[:split_at]
+                exp["frontend"]["highlights"] = bullets[split_at:]
+            else:
+                exp["backend"]["highlights"] = bullets
+
+        links_text = exp.pop("_links_text", "")
+        if links_text:
+            for m in re.finditer(r"([^,()]+?)\s*\((https?://[^)\s]+)\)", links_text):
+                label = m.group(1).strip()
+                url = m.group(2).strip()
+                link = {"label": label, "url": url}
+                lower_label = label.lower()
+                if "frontend" in lower_label or "live" in lower_label:
+                    exp["frontend"]["links"].append(link)
+                else:
+                    exp["backend"]["links"].append(link)
+
+        experiments.append(exp)
+
+    for raw in lines:
+        line = raw.strip()
+        if not line:
+            collecting_links = False
+            continue
+
+        if line.lower() in {"projects", "experiments"}:
+            continue
+
+        header_match = re.match(r"^(.+?)\s*\(([^()]+)\)$", line)
+        if header_match and not line.lower().startswith(("backend:", "frontend:", "links:")):
+            _finalise(current)
+            current = _new_experiment(header_match.group(1).strip(), header_match.group(2).strip())
+            collecting_links = False
+            continue
+
+        if not current:
+            continue
+
+        if line.lower().startswith("backend:"):
+            collecting_links = False
+            tech = line.split(":", 1)[1]
+            current["backend"]["tech"] = [t.strip() for t in re.split(r"[,;]+", tech) if t.strip()]
+            continue
+
+        if line.lower().startswith("frontend:"):
+            collecting_links = False
+            tech = line.split(":", 1)[1]
+            current["frontend"]["tech"] = [t.strip() for t in re.split(r"[,;]+", tech) if t.strip()]
+            continue
+
+        if _is_bullet(line):
+            collecting_links = False
+            cleaned = _clean_bullet(line)
+            if cleaned:
+                current["_bullets"].append(cleaned)
+            continue
+
+        if line.lower().startswith("links:"):
+            collecting_links = True
+            current["_links_text"] = f"{current.get('_links_text', '')} {line.split(':', 1)[1].strip()}".strip()
+            continue
+
+        if collecting_links:
+            current["_links_text"] = f"{current.get('_links_text', '')} {line}".strip()
+
+    _finalise(current)
+    return experiments
+
+
 # ── Public entry point ───────────────────────────────────────────────────────
 
 
@@ -458,6 +652,8 @@ def parse_resume(text: str) -> dict[str, Any]:
     education = _parse_education(sections.get("education", []))
     skills = _parse_skills(sections.get("skills", []))
     certifications = _parse_certifications(sections.get("certifications", []))
+    recommendations = _parse_recommendations(sections.get("recommendations", []))
+    experiments = _parse_experiments(sections.get("experiments", []) + sections.get("projects", []))
 
     return {
         "basics": basics,
@@ -479,14 +675,14 @@ def parse_resume(text: str) -> dict[str, Any]:
         "pdfUrl": "",
         "experience": experience,
         "education": education,
-        "recommendations": [],
+        "recommendations": recommendations,
         "recommendationsWidget": {
             "enabled": False,
             "provider": "",
             "widgetId": "",
             "profileUrl": "",
         },
-        "experiments": [],
+        "experiments": experiments,
         "skills": skills,
         "certifications": certifications,
     }

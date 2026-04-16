@@ -102,6 +102,75 @@ class ResumeParserFixtureTests(unittest.TestCase):
             self.assertIsNotNone(value, f"{field} should not be None")
             self.assertIsInstance(value, list, f"{field} should be a list")
 
+    def test_parser_extracts_recommendations_and_experiments(self):
+        text = """
+Mia Murphy
+Engineering Delivery Partner
+mia@example.com
+
+Summary
+Experienced engineering leader.
+
+Recommendations
+LinkedIn Recommendation
+Product Partner - Engineering Lead
+Delivers clear strategy across stakeholders.
+LinkedIn Recommendation - https://www.linkedin.com/in/miamurphy/details/recommendations/
+
+Experiments
+Velocity Dashboard (full-stack)
+Backend: Docker, Terraform, FastAPI, Kubernetes
+Frontend: React, GraphQL, Vanilla JS, HTML
+- Built a scalable backend with modern cloud-native tooling.
+- Created a polished frontend experience with responsive UI patterns.
+Links: Backend Repo (https://github.com/miamurphy/velocity-dashboard-backend), Live Demo (https://velocity-dashboard.example.com)
+""".strip()
+
+        result = parse_resume(text)
+        recommendations = result.get("recommendations", [])
+        experiments = result.get("experiments", [])
+
+        self.assertGreaterEqual(len(recommendations), 1)
+        self.assertEqual(recommendations[0].get("name"), "Product Partner")
+        self.assertTrue(recommendations[0].get("linkedinUrl", "").startswith("https://"))
+
+        self.assertGreaterEqual(len(experiments), 1)
+        self.assertEqual(experiments[0].get("name"), "Velocity Dashboard")
+        self.assertGreaterEqual(len(experiments[0].get("backend", {}).get("tech", [])), 1)
+
+    def test_parser_handles_variant_section_headers_without_misrouting(self):
+        text = """
+Mia Murphy
+Engineering Delivery Partner
+mia@example.com
+
+CERTIFICATIONS
+AWS Certified Developer
+
+Recommendations & Testimonials
+LinkedIn Recommendation
+Product Partner - Engineering Lead
+Excellent stakeholder communication and delivery discipline.
+LinkedIn Recommendation - https://www.linkedin.com/in/miamurphy/details/recommendations/
+
+Projects / Experiments
+Velocity Dashboard (full-stack)
+Backend: FastAPI, Docker
+Frontend: React
+- Built a scalable backend and clean frontend UX.
+""".strip()
+
+        result = parse_resume(text)
+        certs = result.get("certifications", [])
+        recs = result.get("recommendations", [])
+        experiments = result.get("experiments", [])
+
+        self.assertEqual(certs, ["AWS Certified Developer"])
+        self.assertGreaterEqual(len(recs), 1)
+        self.assertEqual(recs[0].get("name"), "Product Partner")
+        self.assertGreaterEqual(len(experiments), 1)
+        self.assertEqual(experiments[0].get("name"), "Velocity Dashboard")
+
 
 if __name__ == "__main__":
     unittest.main()
