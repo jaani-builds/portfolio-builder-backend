@@ -12,6 +12,7 @@ GET  /{slug}/data/resume.json  – serve resume JSON from S3
 
 import re
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
@@ -22,6 +23,8 @@ from app.dependencies import get_current_user
 from app.models import UserProfile
 from app.rate_limit import limiter
 from app.services import aws_store, slug_store
+from app.services import analytics_store
+from app.services.portfolio_insights import evaluate_portfolio_insights
 
 router = APIRouter(tags=["portfolio"])
 
@@ -53,6 +56,25 @@ class SlugRequest(BaseModel):
             )
         if v in settings.RESERVED_SLUGS:
             raise ValueError(f"'{v}' is a reserved slug name")
+        return v
+
+
+class AnalyticsEventRequest(BaseModel):
+    slug: str
+    event_type: Literal[
+        "portfolio_view",
+        "pdf_click",
+        "linkedin_click",
+        "github_click",
+        "contact_click",
+    ]
+
+    @field_validator("slug")
+    @classmethod
+    def validate_slug(cls, v: str) -> str:
+        v = v.strip().lower()
+        if not _SLUG_RE.match(v):
+            raise ValueError("Invalid slug")
         return v
 
 
@@ -148,6 +170,58 @@ async def slug_suggestions(request: Request, slug: str):
     return {"base": base, "suggestions": suggestions}
 
 
+@router.get("/api/portfolio/insights")
+async def get_portfolio_insights(current_user: UserProfile = Depends(get_current_user)):
+    meta = await slug_store.get_user_meta(current_user.user_key)
+    resume_key = meta.get("resume_key") or meta.get("resume_url")
+    if not resume_key:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No resume uploaded yet")
+
+    resume = await aws_store.read_resume_json(resume_key)
+    if resume is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No resume uploaded yet")
+
+    insights = evaluate_portfolio_insights(resume, meta)
+    slug = meta.get("slug")
+    analytics = {
+        "slug": slug,
+        "range_days": 30,
+        "totals": {
+            "views": 0,
+            "unique_visitors": 0,
+            "pdf_click": 0,
+            "linkedin_click": 0,
+            "github_click": 0,
+            "contact_click": 0,
+        },
+        "daily": [],
+    }
+    if slug:
+        analytics = await analytics_store.get_analytics(slug, days=30)
+
+    return {"insights": insights, "analytics": analytics}
+
+
+@router.post("/api/portfolio/analytics/event")
+@limiter.limit("120/minute")
+async def record_analytics_event(request: Request, body: AnalyticsEventRequest):
+    entry = await slug_store.get_slug_entry(body.slug)
+    if not entry:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio not found")
+
+    user_agent = request.headers.get("user-agent", "")
+    xff = request.headers.get("x-forwarded-for")
+    client_ip = request.client.host if request.client else "unknown"
+    await analytics_store.record_event(
+        slug=body.slug,
+        event_type=body.event_type,
+        request_ip=client_ip,
+        user_agent=user_agent,
+        x_forwarded_for=xff,
+    )
+    return {"status": "ok"}
+
+
 # ── Portfolio data lookup ────────────────────────────────────────────────────
 
 
@@ -204,5 +278,43 @@ async def serve_portfolio(slug: str):
     html = html.replace("href='assets/", f"href='/{slug}/assets/")
     html = html.replace('src="assets/', f'src="/{slug}/assets/')
     html = html.replace("src='assets/", f"src='/{slug}/assets/")
+
+    analytics_script = f"""
+<script>
+(function() {{
+    var slug = {slug!r};
+    var endpoint = '/api/portfolio/analytics/event';
+    function track(eventType) {{
+        try {{
+            fetch(endpoint, {{
+                method: 'POST',
+                headers: {{ 'Content-Type': 'application/json' }},
+                keepalive: true,
+                body: JSON.stringify({{ slug: slug, event_type: eventType }})
+            }});
+        }} catch (e) {{}}
+    }}
+
+    track('portfolio_view');
+
+    document.addEventListener('click', function(e) {{
+        var node = e.target;
+        while (node && node.tagName !== 'A') node = node.parentElement;
+        if (!node || !node.getAttribute) return;
+        var href = (node.getAttribute('href') || '').toLowerCase();
+        if (!href) return;
+        if (href.endsWith('.pdf')) return track('pdf_click');
+        if (href.indexOf('linkedin.com') !== -1) return track('linkedin_click');
+        if (href.indexOf('github.com') !== -1) return track('github_click');
+        if (href.indexOf('mailto:') === 0) return track('contact_click');
+    }}, true);
+}})();
+</script>
+"""
+
+    if "</body>" in html:
+        html = html.replace("</body>", analytics_script + "\n</body>")
+    else:
+        html = html + analytics_script
 
     return HTMLResponse(content=html)
