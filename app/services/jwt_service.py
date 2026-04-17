@@ -12,6 +12,10 @@ from jose import JWTError, jwt
 from app.config import settings
 
 
+def _jwt_issuer() -> str:
+    return (settings.JWT_ISSUER or settings.APP_BASE_URL).rstrip("/")
+
+
 def create_token(
     user_key: str,
     email: Optional[str],
@@ -24,6 +28,8 @@ def create_token(
         "email": email or "",
         "name": name or "",
         "avatar_url": avatar_url or "",
+        "iss": _jwt_issuer(),
+        "aud": settings.JWT_AUDIENCE,
         "exp": exp,
     }
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
@@ -31,4 +37,10 @@ def create_token(
 
 def decode_token(token: str) -> dict:
     """Raises JWTError on invalid / expired token."""
-    return jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+    return jwt.decode(
+        token,
+        settings.JWT_SECRET,
+        algorithms=[settings.JWT_ALGORITHM],
+        audience=settings.JWT_AUDIENCE,
+        issuer=_jwt_issuer(),
+    )

@@ -3,7 +3,7 @@
 FastAPI backend for the portfolio builder with AWS-native storage and Lambda support.
 
 Responsibilities:
-- GitHub OAuth login and callback handling
+- OAuth login and callback handling (GitHub, Google, LinkedIn)
 - Resume parsing and persistence to Amazon S3
 - Slug and user metadata persistence in DynamoDB
 - Slug management and public portfolio serving
@@ -12,6 +12,7 @@ Responsibilities:
 ## Stack
 
 - Auth: GitHub OAuth app
+- Auth: OAuth providers (GitHub, Google, LinkedIn)
 - API runtime: FastAPI (Docker locally), AWS Lambda + API Gateway in production
 - Object storage: Amazon S3 (resume JSON and PDF files)
 - Metadata store: Amazon DynamoDB (slug + user metadata)
@@ -25,8 +26,11 @@ Copy `.env.example` to `.env` and provide the required values for your environme
 Use `.env.example` as the reference for the supported variables.
 
 Notes:
-- GitHub OAuth callback URL must be `http://localhost:8000/api/auth/callback/github`
-- In deployed environments, the callback URL should be your public API base URL plus `/api/auth/callback/github`
+- Callback URLs (local):
+	- GitHub: `http://localhost:8000/api/auth/callback/github`
+	- Google: `http://localhost:8000/api/auth/callback/google`
+	- LinkedIn: `http://localhost:8000/api/auth/callback/linkedin`
+- In deployed environments, callback URLs should be your public API base URL plus `/api/auth/callback/<provider>`.
 
 ## Local Docker run
 
@@ -66,11 +70,13 @@ terraform plan
 terraform apply
 ```
 
-After deployment, update your GitHub OAuth app to use your deployed API callback URL and point the frontend at the deployed API base.
+After deployment, update your OAuth provider app settings to use your deployed API callback URLs and point the frontend at the deployed API base.
 
 ## Main API routes
 
 - `GET /api/auth/github`
+- `GET /api/auth/google`
+- `GET /api/auth/linkedin`
 - `GET /api/auth/callback/github`
 - `GET /api/auth/exchange`
 - `GET /api/resume`

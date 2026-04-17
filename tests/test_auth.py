@@ -3,6 +3,7 @@ import tempfile
 from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
+from jose import jwt
 
 # Set test env vars before importing app settings/app
 os.environ.setdefault("AWS_S3_BUCKET", "test-bucket")
@@ -19,6 +20,7 @@ with open(os.path.join(_tmpdir, "index.html"), "w", encoding="utf-8") as f:
 os.environ.setdefault("PORTFOLIO_TEMPLATE_DIR", _tmpdir)
 
 from app.main import app
+from app.config import settings
 from app.services.oauth_service import generate_state
 
 
@@ -110,6 +112,39 @@ def test_exchange_valid_code(_mock_ensure_tables, _mock_redeem):
     response = client.get("/api/auth/exchange?code=valid-code")
     assert response.status_code == 200
     assert response.json() == {"token": "jwt-token-abc"}
+    assert settings.SESSION_COOKIE_NAME in response.cookies
+
+
+@patch("app.services.exchange_store.redeem", return_value="jwt-token-abc")
+@patch("app.main.aws_store.ensure_tables", new_callable=AsyncMock)
+def test_exchange_sets_http_only_cookie(_mock_ensure_tables, _mock_redeem):
+    response = client.get("/api/auth/exchange?code=valid-code")
+    set_cookie = response.headers.get("set-cookie", "")
+    assert f"{settings.SESSION_COOKIE_NAME}=" in set_cookie
+    assert "HttpOnly" in set_cookie
+
+
+@patch("app.main.aws_store.ensure_tables", new_callable=AsyncMock)
+def test_logout_clears_cookie(_mock_ensure_tables):
+    token = jwt.encode(
+        {
+            "sub": "github_123",
+            "email": "test@example.com",
+            "name": "Tester",
+            "avatar_url": "",
+            "iss": (settings.JWT_ISSUER or settings.APP_BASE_URL).rstrip("/"),
+            "aud": settings.JWT_AUDIENCE,
+            "exp": 4102444800,
+        },
+        settings.JWT_SECRET,
+        algorithm=settings.JWT_ALGORITHM,
+    )
+    response = client.post(
+        "/api/auth/logout",
+        cookies={settings.SESSION_COOKIE_NAME: token},
+    )
+    assert response.status_code == 200
+    assert "Max-Age=0" in response.headers.get("set-cookie", "") or "expires=" in response.headers.get("set-cookie", "").lower()
 
 
 @patch("app.services.exchange_store.redeem", return_value=None)

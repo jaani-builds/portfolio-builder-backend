@@ -5,22 +5,30 @@ FastAPI dependency: resolve current authenticated user from Bearer token.
 No database needed — user identity is carried in the JWT, metadata from local storage.
 """
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Cookie, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 
 from app.models import UserProfile
+from app.config import settings
 from app.services import slug_store
 from app.services.jwt_service import decode_token
 
-_bearer = HTTPBearer()
+_bearer = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+    session_cookie: str | None = Cookie(default=None, alias=settings.SESSION_COOKIE_NAME),
 ) -> UserProfile:
     try:
-        payload = decode_token(credentials.credentials)
+        token = credentials.credentials if credentials else session_cookie
+        if not token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated",
+            )
+        payload = decode_token(token)
         user_key: str = payload["sub"]
     except (JWTError, KeyError):
         raise HTTPException(

@@ -32,6 +32,10 @@ services:
       - JWT_SECRET=supersecretkey-change-me-in-production-12345678
       - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
       - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - LINKEDIN_CLIENT_ID=${LINKEDIN_CLIENT_ID:-}
+      - LINKEDIN_CLIENT_SECRET=${LINKEDIN_CLIENT_SECRET:-}
       - AWS_S3_BUCKET=portfolio-builder-local
       - AWS_DDB_TABLE=portfolio-builder-local-metadata
       - AWS_S3_PREFIX=portfolio-builder

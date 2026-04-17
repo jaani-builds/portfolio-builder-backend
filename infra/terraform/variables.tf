@@ -58,19 +58,6 @@ variable "linkedin_client_secret" {
   default     = ""
 }
 
-variable "apple_client_id" {
-  description = "Apple Sign In service ID"
-  type        = string
-  default     = ""
-}
-
-variable "apple_client_secret" {
-  description = "Apple Sign In client secret JWT"
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
 variable "jwt_secret" {
   description = "JWT signing secret"
   type        = string

@@ -42,8 +42,6 @@ jobs:
       TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
       TF_VAR_linkedin_client_id: ${{ secrets.LINKEDIN_CLIENT_ID }}
       TF_VAR_linkedin_client_secret: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
-      TF_VAR_apple_client_id: ${{ secrets.APPLE_CLIENT_ID }}
-      TF_VAR_apple_client_secret: ${{ secrets.APPLE_CLIENT_SECRET }}
       TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
       TF_VAR_alert_email: ${{ vars.ALERT_EMAIL || 'jaaninickolas@icloud.com' }}
       TF_VAR_lambda_memory_size: "128"

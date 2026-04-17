@@ -238,8 +238,6 @@ resource "aws_lambda_function" "api" {
       GOOGLE_CLIENT_SECRET   = var.google_client_secret
       LINKEDIN_CLIENT_ID     = var.linkedin_client_id
       LINKEDIN_CLIENT_SECRET = var.linkedin_client_secret
-      APPLE_CLIENT_ID        = var.apple_client_id
-      APPLE_CLIENT_SECRET    = var.apple_client_secret
       AWS_S3_BUCKET          = aws_s3_bucket.portfolio.bucket
       AWS_DDB_TABLE          = aws_dynamodb_table.portfolio.name
       AWS_S3_PREFIX          = var.aws_s3_prefix

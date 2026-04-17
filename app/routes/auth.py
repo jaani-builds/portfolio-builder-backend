@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-"""Authentication routes using OAuth providers (GitHub, Google, LinkedIn, Apple)."""
+"""Authentication routes using OAuth providers (GitHub, Google, LinkedIn)."""
 
 from urllib.parse import urlencode
 
 import httpx
-from jose import jwt as jose_jwt
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import RedirectResponse
 
 from app.config import settings
@@ -32,8 +31,31 @@ _LINKEDIN_AUTHORIZE = "https://www.linkedin.com/oauth/v2/authorization"
 _LINKEDIN_TOKEN = "https://www.linkedin.com/oauth/v2/accessToken"
 _LINKEDIN_USERINFO = "https://api.linkedin.com/v2/userinfo"
 
-_APPLE_AUTHORIZE = "https://appleid.apple.com/auth/authorize"
-_APPLE_TOKEN = "https://appleid.apple.com/auth/token"
+
+def _cookie_secure() -> bool:
+    return settings.SESSION_COOKIE_SECURE or settings.APP_BASE_URL.startswith("https://")
+
+
+def _set_session_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key=settings.SESSION_COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=_cookie_secure(),
+        samesite=settings.SESSION_COOKIE_SAMESITE,
+        max_age=settings.JWT_EXPIRY_DAYS * 24 * 60 * 60,
+        path="/",
+    )
+
+
+def _clear_session_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=settings.SESSION_COOKIE_NAME,
+        httponly=True,
+        secure=_cookie_secure(),
+        samesite=settings.SESSION_COOKIE_SAMESITE,
+        path="/",
+    )
 
 
 def _callback_uri(provider: str) -> str:
@@ -51,8 +73,6 @@ def _provider_client_id(provider: str) -> str:
         return settings.GOOGLE_CLIENT_ID
     if provider == "linkedin":
         return settings.LINKEDIN_CLIENT_ID
-    if provider == "apple":
-        return settings.APPLE_CLIENT_ID
     return ""
 
 
@@ -63,8 +83,6 @@ def _provider_client_secret(provider: str) -> str:
         return settings.GOOGLE_CLIENT_SECRET
     if provider == "linkedin":
         return settings.LINKEDIN_CLIENT_SECRET
-    if provider == "apple":
-        return settings.APPLE_CLIENT_SECRET
     return ""
 
 
@@ -148,28 +166,6 @@ async def login_linkedin(request: Request):
     return RedirectResponse(f"{_LINKEDIN_AUTHORIZE}?{urlencode(params)}")
 
 
-@router.get("/apple")
-@limiter.limit("10/minute")
-async def login_apple(request: Request):
-    client_id = _provider_client_id("apple")
-    if not client_id:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Apple OAuth is not configured: missing APPLE_CLIENT_ID",
-        )
-
-    state = generate_state("apple")
-    params = {
-        "client_id": client_id,
-        "redirect_uri": _callback_uri("apple"),
-        "response_type": "code",
-        "response_mode": "query",
-        "scope": "name email",
-        "state": state,
-    }
-    return RedirectResponse(f"{_APPLE_AUTHORIZE}?{urlencode(params)}")
-
-
 @router.get("/callback/github")
 @limiter.limit("10/minute")
 async def callback_github(
@@ -182,7 +178,7 @@ async def callback_github(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OAuth state")
 
     try:
-        async with httpx.AsyncClient(verify=(False if settings.AWS_INSECURE_SSL else True)) as client:
+        async with httpx.AsyncClient() as client:
             token_resp = await client.post(
                 _GITHUB_TOKEN,
                 headers={"Accept": "application/json"},
@@ -244,7 +240,7 @@ async def callback_google(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OAuth state")
 
     try:
-        async with httpx.AsyncClient(verify=(False if settings.AWS_INSECURE_SSL else True)) as client:
+        async with httpx.AsyncClient() as client:
             token_resp = await client.post(
                 _GOOGLE_TOKEN,
                 data={
@@ -311,7 +307,7 @@ async def callback_linkedin(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OAuth state")
 
     try:
-        async with httpx.AsyncClient(verify=(False if settings.AWS_INSECURE_SSL else True)) as client:
+        async with httpx.AsyncClient() as client:
             token_resp = await client.post(
                 _LINKEDIN_TOKEN,
                 data={
@@ -356,57 +352,11 @@ async def callback_linkedin(
     return await _redirect_with_code(jwt)
 
 
-@router.get("/callback/apple")
-@limiter.limit("10/minute")
-async def callback_apple(
-    request: Request,
-    code: str = Query(...),
-    state: str = Query(...),
-):
-    client_id, client_secret = _require_provider_creds("apple")
-    if not verify_state(state, "apple"):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OAuth state")
-
-    try:
-        async with httpx.AsyncClient(verify=(False if settings.AWS_INSECURE_SSL else True)) as client:
-            token_resp = await client.post(
-                _APPLE_TOKEN,
-                data={
-                    "grant_type": "authorization_code",
-                    "code": code,
-                    "redirect_uri": _callback_uri("apple"),
-                    "client_id": client_id,
-                    "client_secret": client_secret,
-                },
-            )
-            if token_resp.status_code != 200:
-                raise HTTPException(status_code=502, detail="Failed to exchange Apple token")
-
-            token_data = token_resp.json()
-            id_token = token_data.get("id_token")
-            if not id_token:
-                raise HTTPException(status_code=502, detail="No id_token in Apple response")
-            claims = jose_jwt.get_unverified_claims(id_token)
-    except httpx.RequestError as exc:
-        raise HTTPException(status_code=502, detail=f"Apple connectivity error: {exc}") from exc
-
-    provider_user_id = claims.get("sub")
-    if not provider_user_id:
-        raise HTTPException(status_code=502, detail="Apple token missing subject")
-
-    user_key = _user_key("apple", str(provider_user_id))
-    email = claims.get("email")
-    name = claims.get("name") or ""
-
-    jwt = create_token(user_key, email, name, avatar_url=None)
-    return await _redirect_with_code(jwt)
-
-
 # ── Exchange code → JWT ───────────────────────────────────────────────────────
 
 @router.get("/exchange")
 @limiter.limit("10/minute")
-async def exchange_code(request: Request, code: str = Query(...)):
+async def exchange_code(request: Request, response: Response, code: str = Query(...)):
     """Redeem a one-time 30-second exchange code for a session JWT."""
     jwt = await exchange_store.redeem(code)
     if jwt is None:
@@ -414,14 +364,18 @@ async def exchange_code(request: Request, code: str = Query(...)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired exchange code",
         )
+    _set_session_cookie(response, jwt)
+    response.headers["Cache-Control"] = "no-store"
     return {"token": jwt}
 
 
 # ── Logout ───────────────────────────────────────────────────────────────────
 
 @router.post("/logout")
-async def logout(current_user: UserProfile = Depends(get_current_user)):
+async def logout(response: Response, current_user: UserProfile = Depends(get_current_user)):
     """Client-side JWT logout."""
+    _clear_session_cookie(response)
+    response.headers["Cache-Control"] = "no-store"
     return {"status": "logged out"}
 
 

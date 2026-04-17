@@ -39,10 +39,27 @@ def _expired_headers(user_key: str) -> dict:
         "email": "expired@example.com",
         "name": "Expired User",
         "avatar_url": "",
+        "iss": (settings.JWT_ISSUER or settings.APP_BASE_URL).rstrip("/"),
+        "aud": settings.JWT_AUDIENCE,
         "exp": datetime.now(timezone.utc) - timedelta(hours=1),
     }
     token = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
     return {"Authorization": f"Bearer {token}"}
+
+
+@patch("app.routes.resume.slug_store.get_user_meta", new_callable=AsyncMock)
+@patch("app.dependencies.slug_store.get_user_meta", new_callable=AsyncMock)
+@patch("app.main.aws_store.ensure_tables", new_callable=AsyncMock)
+def test_get_resume_with_cookie_auth(_mock_ensure_tables, mock_dep_meta, mock_route_meta):
+    mock_dep_meta.return_value = {"resume_key": "portfolio-builder/users/github_100/resume.json"}
+    mock_route_meta.return_value = {"resume_key": "portfolio-builder/users/github_100/resume.json"}
+
+    token = create_token("github_100", "test@example.com", "Test User")
+    with patch("app.routes.resume.aws_store.read_resume_json", new_callable=AsyncMock) as mock_read_resume:
+        mock_read_resume.return_value = {"basics": {"name": "User 1"}}
+        response = client.get("/api/resume", cookies={settings.SESSION_COOKIE_NAME: token})
+
+    assert response.status_code == 200
 
 
 @patch("app.main.aws_store.ensure_tables", new_callable=AsyncMock)
